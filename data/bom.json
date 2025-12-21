@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "lastUpdated": "2025-12-20",
+    "version": "1.0",
+    "platform": "SnowBot V1"
+  },
+  "nodes": [
+    {
+      "nodeId": "N-000",
+      "parentNodeId": "",
+      "subsystem": "Platform",
+      "sku": "SB1-PLT-001",
+      "qty": 1,
+      "unit": "ea",
+      "revision": "A",
+      "criticality": "Critical",
+      "suppliers": [],
+      "notes": "SnowBot V1 platform root."
+    },
+
+    { "nodeId": "N-100", "parentNodeId": "N-000", "subsystem": "Chassis", "sku": "SB1-SS-100", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Welded frame and armor structure." },
+    { "nodeId": "N-110", "parentNodeId": "N-100", "subsystem": "Chassis", "sku": "SB1-ASM-110", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Main frame weldment assembly." },
+    { "nodeId": "N-111", "parentNodeId": "N-110", "subsystem": "Chassis", "sku": "SB1-PRT-111", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Frame weldment, powder coat." },
+    { "nodeId": "N-112", "parentNodeId": "N-110", "subsystem": "Chassis", "sku": "SB1-PRT-112", "qty": 1, "unit": "set", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-FAB-008"], "notes": "Armor panels set (bolt-on)." },
+    { "nodeId": "N-113", "parentNodeId": "N-110", "subsystem": "Chassis", "sku": "SB1-PRT-113", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-FAS-004"], "notes": "Service hatch and latches." },
+    { "nodeId": "N-114", "parentNodeId": "N-110", "subsystem": "Chassis", "sku": "SB1-PRT-114", "qty": 1, "unit": "set", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-FAS-004"], "notes": "Fastener kit (structural)." },
+
+    { "nodeId": "N-200", "parentNodeId": "N-000", "subsystem": "Drive", "sku": "SB1-SS-200", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": [], "notes": "Tracked drivetrain subsystem." },
+    { "nodeId": "N-210", "parentNodeId": "N-200", "subsystem": "Drive", "sku": "SB1-ASM-210", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-DRV-002"], "notes": "Left track drive module." },
+    { "nodeId": "N-211", "parentNodeId": "N-210", "subsystem": "Drive", "sku": "SB1-PRT-211", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-DRV-002"], "notes": "Left traction motor + gearbox." },
+    { "nodeId": "N-212", "parentNodeId": "N-210", "subsystem": "Drive", "sku": "SB1-PRT-212", "qty": 1, "unit": "set", "revision": "A", "criticality": "High", "suppliers": ["SUP-TRK-006"], "notes": "Left track & sprocket set." },
+    { "nodeId": "N-220", "parentNodeId": "N-200", "subsystem": "Drive", "sku": "SB1-ASM-220", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-DRV-002"], "notes": "Right track drive module." },
+    { "nodeId": "N-221", "parentNodeId": "N-220", "subsystem": "Drive", "sku": "SB1-PRT-221", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-DRV-002"], "notes": "Right traction motor + gearbox." },
+    { "nodeId": "N-222", "parentNodeId": "N-220", "subsystem": "Drive", "sku": "SB1-PRT-222", "qty": 1, "unit": "set", "revision": "A", "criticality": "High", "suppliers": ["SUP-TRK-006"], "notes": "Right track & sprocket set." },
+    { "nodeId": "N-230", "parentNodeId": "N-200", "subsystem": "Drive", "sku": "SB1-PRT-230", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-DRV-002"], "notes": "Track tensioner kit (L/R)." },
+
+    { "nodeId": "N-300", "parentNodeId": "N-000", "subsystem": "Snow Intake", "sku": "SB1-SS-300", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-FAB-008"], "notes": "Two-stage snow intake (auger + housing)." },
+    { "nodeId": "N-310", "parentNodeId": "N-300", "subsystem": "Snow Intake", "sku": "SB1-ASM-310", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-FAB-008"], "notes": "Intake housing assembly." },
+    { "nodeId": "N-311", "parentNodeId": "N-310", "subsystem": "Snow Intake", "sku": "SB1-PRT-311", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Front intake shell (welded/formed)." },
+    { "nodeId": "N-312", "parentNodeId": "N-310", "subsystem": "Snow Intake", "sku": "SB1-PRT-312", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-MEC-007"], "notes": "Auger shaft assembly." },
+    { "nodeId": "N-313", "parentNodeId": "N-310", "subsystem": "Snow Intake", "sku": "SB1-PRT-313", "qty": 2, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-MEC-007"], "notes": "Auger bearing block (L/R)." },
+    { "nodeId": "N-314", "parentNodeId": "N-310", "subsystem": "Snow Intake", "sku": "SB1-PRT-314", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Critical", "suppliers": ["SUP-DRV-002"], "notes": "Auger drive motor." },
+    { "nodeId": "N-320", "parentNodeId": "N-300", "subsystem": "Snow Intake", "sku": "SB1-CNS-320", "qty": 1, "unit": "set", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-CNS-005"], "notes": "Shear bolts / pins kit (sacrificial)." },
+
+    { "nodeId": "N-400", "parentNodeId": "N-000", "subsystem": "Discharge", "sku": "SB1-SS-400", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-FAB-008"], "notes": "Impeller + fixed-base chute (rotate only)." },
+    { "nodeId": "N-410", "parentNodeId": "N-400", "subsystem": "Discharge", "sku": "SB1-ASM-410", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-FAB-008"], "notes": "Impeller housing assembly." },
+    { "nodeId": "N-411", "parentNodeId": "N-410", "subsystem": "Discharge", "sku": "SB1-PRT-411", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Critical", "suppliers": ["SUP-MEC-007"], "notes": "Impeller rotor (balanced)." },
+    { "nodeId": "N-412", "parentNodeId": "N-410", "subsystem": "Discharge", "sku": "SB1-PRT-412", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-DRV-002"], "notes": "Impeller drive motor." },
+    { "nodeId": "N-413", "parentNodeId": "N-410", "subsystem": "Discharge", "sku": "SB1-PRT-413", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-MEC-007"], "notes": "Impeller bearings set." },
+    { "nodeId": "N-420", "parentNodeId": "N-400", "subsystem": "Discharge", "sku": "SB1-ASM-420", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Discharge chute assembly (fixed base, rotating head)." },
+    { "nodeId": "N-421", "parentNodeId": "N-420", "subsystem": "Discharge", "sku": "SB1-PRT-421", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-FAB-008"], "notes": "Chute base collar (fixed to top housing)." },
+    { "nodeId": "N-422", "parentNodeId": "N-420", "subsystem": "Discharge", "sku": "SB1-PRT-422", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-ELC-001"], "notes": "Chute rotation actuator." },
+    { "nodeId": "N-423", "parentNodeId": "N-420", "subsystem": "Discharge", "sku": "SB1-PRT-423", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-MEC-007"], "notes": "Chute ring bearing." },
+
+    { "nodeId": "N-500", "parentNodeId": "N-000", "subsystem": "Power", "sku": "SB1-SS-500", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": [], "notes": "High-voltage battery + distribution (electric-only)." },
+    { "nodeId": "N-510", "parentNodeId": "N-500", "subsystem": "Power", "sku": "SB1-ASM-510", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-PWR-003"], "notes": "Battery pack assembly (sealed, serviceable modules)." },
+    { "nodeId": "N-511", "parentNodeId": "N-510", "subsystem": "Power", "sku": "SB1-PRT-511", "qty": 1, "unit": "ea", "revision": "B", "criticality": "Critical", "suppliers": ["SUP-PWR-003"], "notes": "Battery module set (internal)." },
+    { "nodeId": "N-512", "parentNodeId": "N-510", "subsystem": "Power", "sku": "SB1-PRT-512", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-PWR-003"], "notes": "BMS + contactors." },
+    { "nodeId": "N-520", "parentNodeId": "N-500", "subsystem": "Power", "sku": "SB1-PRT-520", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-ELC-001"], "notes": "HV distribution / fuse block." },
+    { "nodeId": "N-530", "parentNodeId": "N-500", "subsystem": "Power", "sku": "SB1-PRT-530", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-ELC-001"], "notes": "DC/DC converter (HV to 24V)." },
+    { "nodeId": "N-540", "parentNodeId": "N-500", "subsystem": "Power", "sku": "SB1-CNS-540", "qty": 1, "unit": "set", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-CNS-005"], "notes": "HV harness labels + seals kit." },
+
+    { "nodeId": "N-600", "parentNodeId": "N-000", "subsystem": "Sensors", "sku": "SB1-SS-600", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": [], "notes": "Low-profile integrated sensor set (no mast)." },
+    { "nodeId": "N-610", "parentNodeId": "N-600", "subsystem": "Sensors", "sku": "SB1-PRT-610", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-SEN-009"], "notes": "Industrial LiDAR (ruggedized mount)." },
+    { "nodeId": "N-620", "parentNodeId": "N-600", "subsystem": "Sensors", "sku": "SB1-PRT-620", "qty": 2, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-SEN-009"], "notes": "Industrial cameras (front/side)." },
+    { "nodeId": "N-630", "parentNodeId": "N-600", "subsystem": "Sensors", "sku": "SB1-PRT-630", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-SEN-009"], "notes": "IMU + temperature sensing." },
+    { "nodeId": "N-640", "parentNodeId": "N-600", "subsystem": "Sensors", "sku": "SB1-ASM-640", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-FAB-008"], "notes": "Sensor armor housing (non-glass, integrated)." },
+
+    { "nodeId": "N-700", "parentNodeId": "N-000", "subsystem": "Lighting", "sku": "SB1-SS-700", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": [], "notes": "Industrial safety lighting (not decorative)." },
+    { "nodeId": "N-710", "parentNodeId": "N-700", "subsystem": "Lighting", "sku": "SB1-PRT-710", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-LGT-010"], "notes": "Top low-profile wide-base strobe beacon." },
+    { "nodeId": "N-720", "parentNodeId": "N-700", "subsystem": "Lighting", "sku": "SB1-PRT-720", "qty": 2, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-LGT-010"], "notes": "Front high-intensity work lights (snow penetration)." },
+    { "nodeId": "N-730", "parentNodeId": "N-700", "subsystem": "Lighting", "sku": "SB1-PRT-730", "qty": 2, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-LGT-010"], "notes": "Rear amber warning lights." },
+    { "nodeId": "N-740", "parentNodeId": "N-700", "subsystem": "Lighting", "sku": "SB1-PRT-740", "qty": 4, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-LGT-010"], "notes": "Side marker ID lights (embedded)." },
+
+    { "nodeId": "N-800", "parentNodeId": "N-000", "subsystem": "Compute", "sku": "SB1-SS-800", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": [], "notes": "Onboard compute, comms, and safety IO." },
+    { "nodeId": "N-810", "parentNodeId": "N-800", "subsystem": "Compute", "sku": "SB1-PRT-810", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-CMP-011"], "notes": "Main compute unit (industrial GPU-capable)." },
+    { "nodeId": "N-820", "parentNodeId": "N-800", "subsystem": "Compute", "sku": "SB1-PRT-820", "qty": 1, "unit": "ea", "revision": "A", "criticality": "High", "suppliers": ["SUP-CMP-011"], "notes": "Safety IO controller (E-stop loop integration)." },
+    { "nodeId": "N-830", "parentNodeId": "N-800", "subsystem": "Compute", "sku": "SB1-PRT-830", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-ELC-001"], "notes": "Wiring harness set (sealed connectors)." },
+    { "nodeId": "N-840", "parentNodeId": "N-800", "subsystem": "Compute", "sku": "SB1-PRT-840", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-CMP-011"], "notes": "GNSS/RTK receiver (low-profile mount)." },
+
+    { "nodeId": "N-900", "parentNodeId": "N-000", "subsystem": "Charging", "sku": "SB1-SS-900", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": [], "notes": "Rear-facing vertical wireless charging dock interface." },
+    { "nodeId": "N-910", "parentNodeId": "N-900", "subsystem": "Charging", "sku": "SB1-PRT-910", "qty": 1, "unit": "ea", "revision": "B", "criticality": "High", "suppliers": ["SUP-CHG-012"], "notes": "Wireless charging receiver module (rear mount)." },
+    { "nodeId": "N-920", "parentNodeId": "N-900", "subsystem": "Charging", "sku": "SB1-PRT-920", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-CHG-012"], "notes": "Dock alignment guide / bumper (snow tolerant)." },
+    { "nodeId": "N-930", "parentNodeId": "N-900", "subsystem": "Charging", "sku": "SB1-PRT-930", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-ELC-001"], "notes": "Charge control interface board." },
+
+    { "nodeId": "N-350", "parentNodeId": "N-300", "subsystem": "Snow Intake", "sku": "SB1-PRT-350", "qty": 1, "unit": "ea", "revision": "A", "criticality": "Critical", "suppliers": ["SUP-FAB-008"], "notes": "Bolt-on cutting edge (sacrificial, replaceable)." },
+    { "nodeId": "N-351", "parentNodeId": "N-300", "subsystem": "Snow Intake", "sku": "SB1-CNS-351", "qty": 2, "unit": "ea", "revision": "A", "criticality": "Medium", "suppliers": ["SUP-CNS-005"], "notes": "Skid shoes set (wear items)." },
+    { "nodeId": "N-352", "parentNodeId": "N-300", "subsystem": "Snow Intake", "sku": "SB1-CNS-352", "qty": 1, "unit": "set", "revision": "A", "criticality": "Low", "suppliers": ["SUP-CNS-005"], "notes": "Grease + service consumables kit." }
+  ]
+}
