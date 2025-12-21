@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Parts • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">Parts Master • SKU discipline • Alternates • Lifecycle</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link" href="./bom.html">BOM Tree</a>
+        <a class="nav__link nav__link--active" href="./parts.html">Parts</a>
+        <a class="nav__link" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./changes.html">Changes</a>
+        <a class="nav__link" href="./rules.html">Rules</a>
+        <a class="nav__link" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Rows</span>
+          <span id="rowCount" class="mono">—</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Parts Master</h1>
+        <p class="lead">
+          Search and filter parts. Click a row to open the detail drawer (revision, lifecycle, alternates, supplier mapping, and related changes).
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnExportCsv" type="button">Export CSV</button>
+        <a class="btn btn--ghost" href="./templates.html">Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Search & Filter</div>
+          <div class="muted small">Client-side</div>
+        </div>
+
+        <div class="form">
+          <label class="form__label">
+            <span class="muted small">Search</span>
+            <input id="q" class="input" type="text" placeholder="SKU, name, subsystem, notes..." autocomplete="off" />
+          </label>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Layer</span>
+              <select id="layer" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Status</span>
+              <select id="status" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Risk tag</span>
+              <select id="risk" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Subsystem</span>
+              <select id="subsystem" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <button class="btn btn--ghost" id="btnReset" type="button">Reset</button>
+            <button class="btn btn--ghost" id="btnValidate" type="button">Validate visible</button>
+          </div>
+
+          <div class="hint" id="filterHint">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Validation (Parts)</div>
+          <div class="muted small">rules.json</div>
+        </div>
+        <div class="list" id="validationList">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Table</div>
+        <div class="muted small mono" id="tableMeta">—</div>
+      </div>
+      <div id="partsTable">
+        <div class="skeleton">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">Parts Master • All data from /data/parts.json</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/validators.js"></script>
+
+  <script>
+    (async function bootPartsPage(){
+      const ctx = { rules:null, bom:null, parts:null, suppliers:null, changes:null };
+
+      try {
+        const loaded = await arcbosDataLoadAll({ base: ".." });
+        ctx.rules = loaded.rules;
+        ctx.bom = loaded.bom;
+        ctx.parts = loaded.parts;
+        ctx.suppliers = loaded.suppliers;
+        ctx.changes = loaded.changes;
+
+        arcbosSetText("#lastUpdated", ctx.rules?.meta?.lastUpdated || "—");
+        arcbosSetText("#buildStamp", "Build: static • Page: Parts");
+      } catch (err) {
+        arcbosSetText("#partsTable", "Data could not be loaded. See README (local server).");
+        return;
+      }
+
+      const parts = Array.isArray(ctx.parts?.parts) ? ctx.parts.parts : [];
+      const suppliers = Array.isArray(ctx.suppliers?.suppliers) ? ctx.suppliers.suppliers : [];
+      const nodes = Array.isArray(ctx.bom?.nodes) ? ctx.bom.nodes : [];
+      const changes = Array.isArray(ctx.changes?.changes) ? ctx.changes.changes : [];
+
+      // Indexes
+      const supplierById = new Map(suppliers.map(s => [s.supplierId, s]));
+      const nodesBySku = new Map(); // sku -> [node]
+      for (const n of nodes) {
+        const k = String(n.sku || "");
+        if (!nodesBySku.has(k)) nodesBySku.set(k, []);
+        nodesBySku.get(k).push(n);
+      }
+
+      function skuLayer(sku) {
+        const s = String(sku || "");
+        const t = s.split("-");
+        return t.length >= 2 ? t[1] : "";
+      }
+
+      // Populate filters from rules + data
+      const layerAllowed = ctx.rules?.skuLayers?.allowed || [];
+      const statusAllowed = ctx.rules?.statusMachine?.states || [];
+
+      const selLayer = arcbos$("#layer");
+      for (const l of layerAllowed) {
+        const o = document.createElement("option");
+        o.value = l;
+        o.textContent = l;
+        selLayer.appendChild(o);
+      }
+
+      const selStatus = arcbos$("#status");
+      for (const st of statusAllowed) {
+        const o = document.createElement("option");
+        o.value = st;
+        o.textContent = st;
+        selStatus.appendChild(o);
+      }
+
+      const subsystems = Array.from(new Set(parts.map(p => p.subsystem).filter(Boolean))).sort();
+      const selSubsystem = arcbos$("#subsystem");
+      for (const s of subsystems) {
+        const o = document.createElement("option");
+        o.value = s;
+        o.textContent = s;
+        selSubsystem.appendChild(o);
+      }
+
+      const riskTags = Array.from(new Set(parts.flatMap(p => Array.isArray(p.riskTags) ? p.riskTags : []).filter(Boolean))).sort();
+      const selRisk = arcbos$("#risk");
+      for (const r of riskTags) {
+        const o = document.createElement("option");
+        o.value = r;
+        o.textContent = r;
+        selRisk.appendChild(o);
+      }
+
+      const state = {
+        q: "",
+        layer: "",
+        status: "",
+        risk: "",
+        subsystem: ""
+      };
+
+      function matchPart(p) {
+        if (state.layer && skuLayer(p.sku) !== state.layer) return false;
+        if (state.status && String(p.status || "") !== state.status) return false;
+        if (state.subsystem && String(p.subsystem || "") !== state.subsystem) return false;
+        if (state.risk) {
+          const tags = Array.isArray(p.riskTags) ? p.riskTags : [];
+          if (!tags.includes(state.risk)) return false;
+        }
+
+        const q = state.q.trim().toLowerCase();
+        if (!q) return true;
+
+        const hay = [
+          p.sku, p.name, p.subsystem, p.revision, p.status,
+          (Array.isArray(p.riskTags) ? p.riskTags.join(" ") : ""),
+          p.notes
+        ].join(" ").toLowerCase();
+
+        return hay.includes(q);
+      }
+
+      function relatedChangesForSku(sku) {
+        const k = String(sku || "");
+        return changes.filter(c => {
+          const a = Array.isArray(c.affectedSkus) ? c.affectedSkus : [];
+          return a.includes(k);
+        }).sort((a,b) => String(b.date || "").localeCompare(String(a.date || "")));
+      }
+
+      function partDetailNode(p) {
+        const wrap = arcbosEl("div", "", "");
+
+        const head = arcbosEl("div", "detailHead", "");
+        const left = arcbosEl("div", "", "");
+        left.appendChild(arcbosEl("div", "detailSku mono", p.sku || "—"));
+        left.appendChild(arcbosEl("div", "detailName", p.name || "—"));
+
+        const right = arcbosEl("div", "detailBadges", "");
+        right.appendChild(arcbosBadge(p.status || "—", { kind: "status", level: p.status }));
+        right.appendChild(arcbosBadge("Rev " + (p.revision || "—"), { kind: "rev" }));
+
+        head.appendChild(left);
+        head.appendChild(right);
+        wrap.appendChild(head);
+
+        const kv = arcbosKvList([
+          { k: "Layer", v: skuLayer(p.sku) || "—" },
+          { k: "Subsystem", v: p.subsystem || "—" },
+          { k: "Owner", v: p.owner || "—" },
+          { k: "Date", v: p.date || "—" },
+          { k: "Lifecycle", v: p.lifecycle || "—" }
+        ]);
+        wrap.appendChild(kv);
+
+        if (Array.isArray(p.riskTags) && p.riskTags.length) {
+          const tags = arcbosEl("div", "tagRow", "");
+          for (const t of p.riskTags) tags.appendChild(arcbosPill(t, { kind: "risk" }));
+          wrap.appendChild(tags);
+        }
+
+        if (p.notes) {
+          const notes = arcbosEl("div", "detailNotes", "");
+          notes.appendChild(arcbosEl("div", "muted small", "Notes"));
+          notes.appendChild(arcbosEl("div", "detailNotes__body", p.notes));
+          wrap.appendChild(notes);
+        }
+
+        // Supplier mapping (from part.preferredSuppliers + BOM nodes suppliers)
+        const supSet = new Set();
+        for (const s of (Array.isArray(p.preferredSuppliers) ? p.preferredSuppliers : [])) supSet.add(s);
+        for (const n of (nodesBySku.get(String(p.sku || "")) || [])) {
+          for (const s of (Array.isArray(n.suppliers) ? n.suppliers : [])) supSet.add(s);
+        }
+        const supIds = Array.from(supSet);
+
+        const supBlock = arcbosEl("div", "detailBlock", "");
+        supBlock.appendChild(arcbosEl("div", "detailBlock__title", "Suppliers"));
+        if (supIds.length === 0) {
+          supBlock.appendChild(arcbosEl("div", "muted small", "No suppliers mapped for this part."));
+        } else {
+          const list = arcbosEl("div", "detailList", "");
+          for (const id of supIds) {
+            const s = supplierById.get(id);
+            const item = arcbosEl("div", "detailList__item", "");
+            item.appendChild(arcbosEl("div", "mono", id));
+            item.appendChild(arcbosEl("div", "muted small", s ? (s.name + " • " + (s.region || "—") + " • " + (s.status || "—")) : "Unknown supplierId"));
+            list.appendChild(item);
+          }
+          supBlock.appendChild(list);
+        }
+        wrap.appendChild(supBlock);
+
+        // Alternates
+        const altBlock = arcbosEl("div", "detailBlock", "");
+        altBlock.appendChild(arcbosEl("div", "detailBlock__title", "Approved alternates"));
+        const alts = Array.isArray(p.alternates) ? p.alternates : [];
+        if (alts.length === 0) {
+          altBlock.appendChild(arcbosEl("div", "muted small", "No alternates listed."));
+        } else {
+          const list = arcbosEl("div", "detailList", "");
+          for (const a of alts) {
+            const item = arcbosEl("div", "detailList__item", "");
+            const top = arcbosEl("div", "", "");
+            top.appendChild(arcbosEl("div", "mono", a.sku || "—"));
+            top.appendChild(arcbosEl("div", "muted small", "Interchangeability: " + (a.interchangeability || "—")));
+            item.appendChild(top);
+            if (a.notes) item.appendChild(arcbosEl("div", "muted small", a.notes));
+            list.appendChild(item);
+          }
+          altBlock.appendChild(list);
+        }
+        wrap.appendChild(altBlock);
+
+        // Related changes
+        const rel = relatedChangesForSku(p.sku);
+        const chgBlock = arcbosEl("div", "detailBlock", "");
+        chgBlock.appendChild(arcbosEl("div", "detailBlock__title", "Related changes"));
+        if (rel.length === 0) {
+          chgBlock.appendChild(arcbosEl("div", "muted small", "No ECR/ECO references found for this SKU."));
+        } else {
+          const list = arcbosEl("div", "detailList", "");
+          for (const c of rel.slice(0, 10)) {
+            const item = arcbosEl("div", "detailList__item", "");
+            item.appendChild(arcbosEl("div", "mono", c.changeId || "—"));
+            item.appendChild(arcbosEl("div", "muted small", (c.type || "—") + " • " + (c.status || "—") + " • " + (c.date || "—")));
+            item.appendChild(arcbosEl("div", "small", c.title || ""));
+            list.appendChild(item);
+          }
+          chgBlock.appendChild(list);
+        }
+        wrap.appendChild(chgBlock);
+
+        return wrap;
+      }
+
+      const columns = [
+        { key: "sku", label: "SKU", width: "220px", render: (p) => arcbosEl("span", "mono", p.sku || "") },
+        { key: "name", label: "Name", render: (p) => p.name || "" },
+        { key: "subsystem", label: "Subsystem", width: "160px", render: (p) => p.subsystem || "" },
+        { key: "revision", label: "Rev", width: "70px", render: (p) => arcbosBadge(p.revision || "—", { kind: "rev" }) },
+        { key: "status", label: "Status", width: "130px", render: (p) => arcbosBadge(p.status || "—", { kind: "status", level: p.status }) },
+        { key: "riskTags", label: "Risks", width: "220px", render: (p) => {
+          const tags = Array.isArray(p.riskTags) ? p.riskTags : [];
+          const w = arcbosEl("div", "tagRow", "");
+          for (const t of tags.slice(0, 3)) w.appendChild(arcbosPill(t, { kind: "risk" }));
+          if (tags.length > 3) w.appendChild(arcbosPill("+" + (tags.length - 3), { kind: "more" }));
+          return w;
+        }},
+        { key: "owner", label: "Owner", width: "140px", render: (p) => p.owner || "" }
+      ];
+
+      function visibleParts() {
+        return parts.filter(matchPart).sort((a,b) => String(a.sku || "").localeCompare(String(b.sku || "")));
+      }
+
+      function render() {
+        const rows = visibleParts();
+        arcbosSetText("#rowCount", String(rows.length));
+
+        const q = state.q.trim();
+        arcbosSetText("#filterHint",
+          `Filter: Layer=${state.layer || "All"} • Status=${state.status || "All"} • Risk=${state.risk || "All"} • Subsystem=${state.subsystem || "All"} • Search="${q || ""}"`
+        );
+
+        arcbosSetText("#tableMeta", `Total parts: ${parts.length} • Visible: ${rows.length}`);
+
+        arcbosRenderTable("#partsTable", columns, rows, {
+          onRowClick: function(p){
+            arcbosOpenDrawer(p.sku || "Part", partDetailNode(p));
+          }
+        });
+      }
+
+      function validateVisible() {
+        const rows = visibleParts();
+        const issues = [];
+        for (const p of rows) {
+          const partIssues = arcbosValidatePart(p, ctx.rules);
+          for (const it of partIssues) {
+            issues.push({
+              ...it,
+              context: "Part " + (p.sku || "—")
+            });
+          }
+        }
+
+        const summary = arcbosSummarizeIssues(issues, { max: 10 });
+        arcbosRenderList("#validationList", summary.length ? summary : [{
+          title: "No blocking issues detected",
+          meta: "Visible parts passed required field + SKU/rev/status checks."
+        }]);
+      }
+
+      function reset() {
+        state.q = "";
+        state.layer = "";
+        state.status = "";
+        state.risk = "";
+        state.subsystem = "";
+
+        arcbos$("#q").value = "";
+        arcbos$("#layer").value = "";
+        arcbos$("#status").value = "";
+        arcbos$("#risk").value = "";
+        arcbos$("#subsystem").value = "";
+
+        arcbosRenderList("#validationList", [{ title: "Ready", meta: "Click 'Validate visible' to run rules." }]);
+        render();
+      }
+
+      // Events
+      arcbos$("#q").addEventListener("input", function(e){ state.q = e.target.value || ""; render(); });
+      arcbos$("#layer").addEventListener("change", function(e){ state.layer = e.target.value || ""; render(); });
+      arcbos$("#status").addEventListener("change", function(e){ state.status = e.target.value || ""; render(); });
+      arcbos$("#risk").addEventListener("change", function(e){ state.risk = e.target.value || ""; render(); });
+      arcbos$("#subsystem").addEventListener("change", function(e){ state.subsystem = e.target.value || ""; render(); });
+
+      arcbos$("#btnReset").addEventListener("click", reset);
+      arcbos$("#btnValidate").addEventListener("click", function(){
+        validateVisible();
+        arcbosToast("Validation complete", "info");
+      });
+
+      arcbos$("#btnExportCsv").addEventListener("click", function(){
+        const rows = visibleParts();
+        const out = [];
+        out.push(["sku","name","subsystem","revision","status","owner","date","lifecycle","riskTags","preferredSuppliers","notes"]);
+        for (const p of rows) {
+          out.push([
+            p.sku || "",
+            p.name || "",
+            p.subsystem || "",
+            p.revision || "",
+            p.status || "",
+            p.owner || "",
+            p.date || "",
+            p.lifecycle || "",
+            Array.isArray(p.riskTags) ? p.riskTags.join("|") : "",
+            Array.isArray(p.preferredSuppliers) ? p.preferredSuppliers.join("|") : "",
+            (p.notes || "").replace(/\r?\n/g, " ")
+          ]);
+        }
+        const csv = arcbosCsvEncode(out);
+        arcbosDownloadText(csv, "arcbos_parts_view.csv", "text/csv");
+      });
+
+      // Initial
+      reset();
+    })();
+  </script>
+</body>
+</html>
