@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Suppliers • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">Supplier Master • Scoring • Risk • Parts mapping</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link" href="./bom.html">BOM Tree</a>
+        <a class="nav__link" href="./parts.html">Parts</a>
+        <a class="nav__link nav__link--active" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./changes.html">Changes</a>
+        <a class="nav__link" href="./rules.html">Rules</a>
+        <a class="nav__link" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Suppliers</span>
+          <span id="rowCount" class="mono">—</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Suppliers</h1>
+        <p class="lead">
+          Weighted score is computed from rules.json. Click a supplier to open detail drawer (scores, risk tags, supplied parts, BOM nodes, related changes).
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnExportCsv" type="button">Export CSV</button>
+        <a class="btn btn--ghost" href="./templates.html">Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Search & Filter</div>
+          <div class="muted small">Client-side</div>
+        </div>
+
+        <div class="form">
+          <label class="form__label">
+            <span class="muted small">Search</span>
+            <input id="q" class="input" type="text" placeholder="Supplier name, region, notes..." autocomplete="off" />
+          </label>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Status</span>
+              <select id="status" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Region</span>
+              <select id="region" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Risk tag</span>
+              <select id="risk" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Sort</span>
+              <select id="sort" class="select">
+                <option value="score_desc">Score (High → Low)</option>
+                <option value="score_asc">Score (Low → High)</option>
+                <option value="name_asc">Name (A → Z)</option>
+                <option value="parts_desc">Parts count (High → Low)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <button class="btn btn--ghost" id="btnReset" type="button">Reset</button>
+            <button class="btn btn--ghost" id="btnValidate" type="button">Validate visible</button>
+          </div>
+
+          <div class="hint" id="filterHint">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Validation (Suppliers)</div>
+          <div class="muted small">rules.json</div>
+        </div>
+        <div class="list" id="validationList">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Table</div>
+        <div class="muted small mono" id="tableMeta">—</div>
+      </div>
+      <div id="suppliersTable">
+        <div class="skeleton">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">Supplier Master • All data from /data/suppliers.json</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/validators.js"></script>
+  <script src="../js/suppliers.js"></script>
+</body>
+</html>
