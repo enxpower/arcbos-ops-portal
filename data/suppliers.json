@@ -1,0 +1,176 @@
+{
+  "meta": {
+    "lastUpdated": "2025-12-20",
+    "version": "1.0"
+  },
+  "suppliers": [
+    {
+      "supplierId": "SUP-ELC-001",
+      "name": "NorthBridge Controls",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Account Manager", "email": "sales@northbridge-controls.example", "phone": "+1-000-000-0001" }
+      ],
+      "capabilities": ["Harnessing", "Actuators", "Power Electronics", "Enclosures"],
+      "compliance": ["RoHS", "REACH"],
+      "riskTags": ["Lead-time Sensitive"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 3, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Good engineering support. Monitor lead times in winter season."
+    },
+    {
+      "supplierId": "SUP-DRV-002",
+      "name": "IronTorque Motion",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Technical Sales", "email": "support@irontorque-motion.example", "phone": "+1-000-000-0002" }
+      ],
+      "capabilities": ["Traction Motors", "Gearboxes", "Motor Controllers"],
+      "compliance": ["ISO 9001"],
+      "riskTags": ["Single-source Candidate"],
+      "scores": { "quality": 4, "delivery": 4, "cost": 2, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "High torque density. Cost is premium; qualify alternates for risk reduction."
+    },
+    {
+      "supplierId": "SUP-PWR-003",
+      "name": "ArcticCell Energy Systems",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Program Contact", "email": "pm@arcticcell-energy.example", "phone": "+1-000-000-0003" }
+      ],
+      "capabilities": ["Battery Modules", "BMS", "Contactors", "Pack Integration"],
+      "compliance": ["UN 38.3"],
+      "riskTags": ["Safety Critical", "Regulatory"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 3, "engineeringSupport": 5, "compliance": 4, "risk": 3 },
+      "notes": "Strong support. Ensure pack safety documentation stays current."
+    },
+    {
+      "supplierId": "SUP-FAS-004",
+      "name": "BoltWorks Industrial Supply",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Customer Service", "email": "orders@boltworks.example", "phone": "+1-000-000-0004" }
+      ],
+      "capabilities": ["Fasteners", "Latches", "Kitting"],
+      "compliance": ["ISO 9001"],
+      "riskTags": ["Commodity"],
+      "scores": { "quality": 4, "delivery": 4, "cost": 4, "engineeringSupport": 3, "compliance": 4, "risk": 4 },
+      "notes": "Reliable commodity supplier; keep dual sourcing option open."
+    },
+    {
+      "supplierId": "SUP-CNS-005",
+      "name": "FieldKit Consumables",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Operations", "email": "ops@fieldkit-consumables.example", "phone": "+1-000-000-0005" }
+      ],
+      "capabilities": ["Kits", "Consumables", "Wear Items"],
+      "compliance": ["RoHS"],
+      "riskTags": ["Low Risk"],
+      "scores": { "quality": 3, "delivery": 4, "cost": 5, "engineeringSupport": 2, "compliance": 3, "risk": 4 },
+      "notes": "Low-cost kits. Watch quality consistency for wear items."
+    },
+    {
+      "supplierId": "SUP-TRK-006",
+      "name": "TrackForge Mobility",
+      "region": "Asia (Non-China)",
+      "status": "Active",
+      "contacts": [
+        { "name": "Regional Rep", "email": "rep@trackforge.example", "phone": "+81-000-000-0006" }
+      ],
+      "capabilities": ["Rubber Tracks", "Sprockets", "Idlers"],
+      "compliance": ["ISO 9001"],
+      "riskTags": ["Shipping Risk", "Lead-time Sensitive"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 3, "engineeringSupport": 3, "compliance": 4, "risk": 3 },
+      "notes": "Non-China Asia sourcing. Plan buffer inventory for winter demand."
+    },
+    {
+      "supplierId": "SUP-MEC-007",
+      "name": "Precision Rotor & Bearing Co.",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Applications Engineer", "email": "ae@precision-rotor.example", "phone": "+1-000-000-0007" }
+      ],
+      "capabilities": ["Rotors", "Machining", "Bearings Integration", "Balancing"],
+      "compliance": ["ISO 9001"],
+      "riskTags": ["Process Sensitive"],
+      "scores": { "quality": 5, "delivery": 3, "cost": 3, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Excellent balancing quality. Delivery is the main watch item."
+    },
+    {
+      "supplierId": "SUP-FAB-008",
+      "name": "SteelRidge Fabrication",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Fabrication Lead", "email": "rfq@steelridge-fab.example", "phone": "+1-000-000-0008" }
+      ],
+      "capabilities": ["Weldments", "Sheet Metal", "Powder Coat", "Assembly Fixtures"],
+      "compliance": ["ISO 9001"],
+      "riskTags": ["Capacity Risk", "Weld Quality"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 3, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Core structural supplier. Qualify second source once geometry stabilizes."
+    },
+    {
+      "supplierId": "SUP-SEN-009",
+      "name": "Rugged Perception Instruments",
+      "region": "Europe",
+      "status": "Active",
+      "contacts": [
+        { "name": "Sales Engineer", "email": "sales@rpi-sensors.example", "phone": "+49-000-000-0009" }
+      ],
+      "capabilities": ["LiDAR", "Industrial Cameras", "IMU"],
+      "compliance": ["CE", "RoHS"],
+      "riskTags": ["Export Docs", "Lead-time Sensitive"],
+      "scores": { "quality": 5, "delivery": 3, "cost": 2, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Top perception quality. Cost is high; validate alternates for scaling."
+    },
+    {
+      "supplierId": "SUP-LGT-010",
+      "name": "SignalSafe Lighting",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Inside Sales", "email": "sales@signalsafe-lighting.example", "phone": "+1-000-000-0010" }
+      ],
+      "capabilities": ["Work Lights", "Beacons", "Warning Lamps"],
+      "compliance": ["IP67", "EMC"],
+      "riskTags": ["Low Risk"],
+      "scores": { "quality": 4, "delivery": 4, "cost": 4, "engineeringSupport": 3, "compliance": 4, "risk": 4 },
+      "notes": "Stable supplier. Ensure mounting standardization across assemblies."
+    },
+    {
+      "supplierId": "SUP-CMP-011",
+      "name": "Industrial Edge Compute",
+      "region": "North America",
+      "status": "Active",
+      "contacts": [
+        { "name": "Solutions Team", "email": "solutions@industrial-edge-compute.example", "phone": "+1-000-000-0011" }
+      ],
+      "capabilities": ["Compute Units", "Safety IO", "GNSS/RTK"],
+      "compliance": ["FCC", "CE"],
+      "riskTags": ["Obsolescence Risk"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 2, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Monitor component lifecycle/availability; plan obsolescence strategy."
+    },
+    {
+      "supplierId": "SUP-CHG-012",
+      "name": "SnowDock Wireless Charging",
+      "region": "Europe",
+      "status": "Active",
+      "contacts": [
+        { "name": "Program Support", "email": "support@snowdock-charging.example", "phone": "+33-000-000-0012" }
+      ],
+      "capabilities": ["Wireless Charging", "Dock Hardware", "Alignment Guides"],
+      "compliance": ["CE", "EMC"],
+      "riskTags": ["Integration Risk"],
+      "scores": { "quality": 4, "delivery": 3, "cost": 3, "engineeringSupport": 4, "compliance": 4, "risk": 3 },
+      "notes": "Wireless charging is key feature; keep integration tests in every build."
+    }
+  ]
+}
