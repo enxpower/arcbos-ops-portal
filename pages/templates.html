@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Templates • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">Data templates • Field reference • Copy/paste ready</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link" href="./bom.html">BOM Tree</a>
+        <a class="nav__link" href="./parts.html">Parts</a>
+        <a class="nav__link" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./changes.html">Changes</a>
+        <a class="nav__link" href="./rules.html">Rules</a>
+        <a class="nav__link nav__link--active" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Data</span>
+          <span class="mono">/data/*.json</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Templates</h1>
+        <p class="lead">
+          Download minimal JSON templates and view field guidance. Maintain the portal by editing JSON files only.
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnDownloadAll" type="button">Download all templates</button>
+        <a class="btn btn--ghost" href="./rules.html">Rules</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Template downloads</div>
+          <div class="muted small">Copy to /data</div>
+        </div>
+
+        <div class="list" id="downloadList">
+          <div class="skeleton">Loading…</div>
+        </div>
+
+        <div class="hint">
+          Tip: Keep stable IDs (nodeId, supplierId, changeId). Revisions change; IDs should not.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Field requirements</div>
+          <div class="muted small">rules.json • validation.required</div>
+        </div>
+        <div id="requirementsBox">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Quick examples</div>
+        <div class="muted small">Minimal valid objects</div>
+      </div>
+      <div class="grid grid--2" id="examplesGrid">
+        <div class="skeleton">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">Templates • No backend</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    (async function bootTemplates(){
+      const stamp = document.getElementById("buildStamp");
+
+      function minimalTemplates() {
+        return {
+          "bom.json": {
+            meta: { lastUpdated: "YYYY-MM-DD", version: "1.0" },
+            nodes: [
+              {
+                nodeId: "N-000",
+                parentNodeId: "",
+                subsystem: "Platform",
+                sku: "SB1-PLT-001",
+                qty: 1,
+                unit: "ea",
+                revision: "A",
+                criticality: "High",
+                suppliers: [],
+                notes: "Platform root."
+              }
+            ]
+          },
+          "parts.json": {
+            meta: { lastUpdated: "YYYY-MM-DD", version: "1.0" },
+            parts: [
+              {
+                sku: "SB1-PRT-000",
+                name: "Example Part",
+                type: "Part",
+                revision: "A",
+                status: "Proto",
+                owner: "Engineering",
+                date: "YYYY-MM-DD",
+                criticality: "Medium",
+                preferredSuppliers: [],
+                approvedAlternates: [],
+                interchangeability: "Drop-in",
+                lifecycle: { introduced: "YYYY-MM-DD", endOfLife: "" },
+                notes: ""
+              }
+            ]
+          },
+          "suppliers.json": {
+            meta: { lastUpdated: "YYYY-MM-DD", version: "1.0" },
+            suppliers: [
+              {
+                supplierId: "SUP-000",
+                name: "Example Supplier",
+                region: "North America",
+                status: "Approved",
+                riskTags: [],
+                contact: "",
+                email: "",
+                website: "",
+                scores: {
+                  quality: 4,
+                  delivery: 4,
+                  cost: 3,
+                  engineeringSupport: 4,
+                  compliance: 4,
+                  risk: 3
+                },
+                notes: ""
+              }
+            ]
+          },
+          "changes.json": {
+            meta: { lastUpdated: "YYYY-MM-DD", version: "1.0" },
+            changes: [
+              {
+                changeId: "ECR-0001",
+                type: "ECR",
+                title: "Example change request",
+                reason: "Why we need it",
+                impact: "What it affects",
+                affectedSkus: ["SB1-PRT-000"],
+                approver: "",
+                status: "Draft",
+                date: "YYYY-MM-DD",
+                notes: ""
+              }
+            ]
+          }
+        };
+      }
+
+      try {
+        const loaded = await arcbosDataLoadAll({ base: ".." });
+        const rules = loaded.rules || {};
+        document.getElementById("lastUpdated").textContent = rules?.meta?.lastUpdated || "—";
+        stamp.textContent = "Build: static • Page: Templates";
+
+        // Requirements
+        const req = rules?.validation?.required || {};
+        const reqWrap = document.createElement("div");
+        reqWrap.className = "prose";
+
+        const t = document.createElement("table");
+        t.className = "miniTable";
+        t.innerHTML = "<thead><tr><th>Dataset</th><th>Required</th></tr></thead>";
+        const tb = document.createElement("tbody");
+        for (const ds of Object.keys(req)) {
+          const fields = Array.isArray(req[ds]) ? req[ds] : [];
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td class='mono'>" + String(ds) + "</td><td>" +
+            fields.map(f => "<span class='mono'>" + String(f) + "</span>").join(", ") + "</td>";
+          tb.appendChild(tr);
+        }
+        t.appendChild(tb);
+        reqWrap.appendChild(t);
+
+        const box = document.getElementById("requirementsBox");
+        box.innerHTML = "";
+        box.appendChild(reqWrap);
+
+        // Download list
+        const tmpls = minimalTemplates();
+        const items = Object.keys(tmpls).map(function(file){
+          return {
+            title: file,
+            meta: "Minimal JSON template",
+            actions: [
+              {
+                label: "Download",
+                onClick: function(){
+                  const txt = JSON.stringify(tmpls[file], null, 2);
+                  arcbosDownloadText(txt, file, "application/json");
+                }
+              },
+              {
+                label: "View",
+                onClick: function(){
+                  arcbosOpenDrawer(file, arcbosCodeBlock(JSON.stringify(tmpls[file], null, 2)));
+                }
+              }
+            ]
+          };
+        });
+
+        arcbosRenderActionList("#downloadList", items);
+
+        // Examples grid
+        const exWrap = document.getElementById("examplesGrid");
+        exWrap.innerHTML = "";
+
+        function card(title, obj) {
+          const c = document.createElement("div");
+          c.className = "card";
+          const head = document.createElement("div");
+          head.className = "card__head";
+          head.innerHTML = "<div class='card__title'>" + title + "</div><div class='muted small'>Minimal valid object</div>";
+          c.appendChild(head);
+
+          const body = document.createElement("div");
+          body.className = "codeBox";
+          body.appendChild(arcbosCodeBlock(JSON.stringify(obj, null, 2)));
+          c.appendChild(body);
+          return c;
+        }
+
+        exWrap.appendChild(card("BOM node", tmpls["bom.json"].nodes[0]));
+        exWrap.appendChild(card("Part", tmpls["parts.json"].parts[0]));
+        exWrap.appendChild(card("Supplier", tmpls["suppliers.json"].suppliers[0]));
+        exWrap.appendChild(card("Change (ECR/ECO)", tmpls["changes.json"].changes[0]));
+
+        document.getElementById("btnDownloadAll").addEventListener("click", function(){
+          const tm = minimalTemplates();
+          for (const file of Object.keys(tm)) {
+            arcbosDownloadText(JSON.stringify(tm[file], null, 2), file, "application/json");
+          }
+          arcbosToast("Templates downloaded", "info");
+        });
+
+      } catch (err) {
+        stamp.textContent = "Build: static • Page: Templates";
+        document.getElementById("downloadList").textContent = "Data could not be loaded. See README (local server).";
+        document.getElementById("requirementsBox").textContent = "—";
+        document.getElementById("examplesGrid").textContent = "—";
+      }
+    })();
+  </script>
+</body>
+</html>
