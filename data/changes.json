@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "lastUpdated": "2025-12-20",
+    "version": "1.0"
+  },
+  "changes": [
+    {
+      "changeId": "ECR-0001",
+      "type": "ECR",
+      "title": "Define SnowFlow Direction Constraint",
+      "reason": "Baseline requires two-stage snow removal with fixed flow direction front→mid→up and chute aligned to that flow.",
+      "impact": "Locks mechanical architecture for intake/discharge interfaces.",
+      "affectedSkus": ["SB1-SS-300", "SB1-SS-400", "SB1-ASM-310", "SB1-ASM-420"],
+      "approver": "Chief Engineer",
+      "status": "Approved",
+      "date": "2025-10-02",
+      "notes": "Prevents design drift towards drifting/outboard chutes."
+    },
+    {
+      "changeId": "ECO-0002",
+      "type": "ECO",
+      "title": "Chassis Frame Gusseting Upgrade (Rev A→B)",
+      "reason": "Field vibration test showed stress concentration near drivetrain mounts.",
+      "impact": "Improves durability; minor mass increase.",
+      "affectedSkus": ["SB1-PRT-111", "SB1-ASM-110", "SB1-SS-100"],
+      "approver": "Chief Engineer",
+      "status": "Implemented",
+      "date": "2025-11-18",
+      "notes": "Updates coating process spec for new weld zones."
+    },
+    {
+      "changeId": "ECR-0003",
+      "type": "ECR",
+      "title": "No-Mast Sensor Integration Rule",
+      "reason": "Baseline prohibits mast/pole/rod for sensors and lights.",
+      "impact": "Enforces low-profile integrated sensor armor housing.",
+      "affectedSkus": ["SB1-SS-600", "SB1-ASM-640", "SB1-PRT-610", "SB1-PRT-620"],
+      "approver": "Systems Lead",
+      "status": "Approved",
+      "date": "2025-10-05",
+      "notes": "All future CAD must comply; violations are design failures."
+    },
+    {
+      "changeId": "ECO-0004",
+      "type": "ECO",
+      "title": "LiDAR Window Heating Strategy (Rev A→B)",
+      "reason": "Snow/ice accumulation reduced LiDAR reliability in wet snow tests.",
+      "impact": "Improves perception stability; increases power draw slightly.",
+      "affectedSkus": ["SB1-PRT-610"],
+      "approver": "EE Lead",
+      "status": "Implemented",
+      "date": "2025-12-10",
+      "notes": "Update sensor power budget and wiring harness label."
+    },
+    {
+      "changeId": "ECR-0005",
+      "type": "ECR",
+      "title": "Sacrificial Wear Parts Mandatory (Cutting Edge + Skid Shoes)",
+      "reason": "Baseline requires ground-contact components to be bolt-on replaceable metal wear parts.",
+      "impact": "Creates consumable SKUs and service kits; improves maintainability.",
+      "affectedSkus": ["SB1-PRT-350", "SB1-CNS-351", "SB1-CNS-352", "SB1-SS-300"],
+      "approver": "Ops",
+      "status": "Approved",
+      "date": "2025-10-24",
+      "notes": "Drives spare parts planning and supplier kitting."
+    },
+    {
+      "changeId": "ECO-0006",
+      "type": "ECO",
+      "title": "Impeller Housing Clearance Increase (Rev A→B)",
+      "reason": "Slush accumulation and clogging observed under heavy wet snow.",
+      "impact": "Reduces clogging risk; requires updated weldment drawing.",
+      "affectedSkus": ["SB1-ASM-410", "SB1-SS-400"],
+      "approver": "ME Lead",
+      "status": "Implemented",
+      "date": "2025-12-05",
+      "notes": "Keep balance spec unchanged; only housing geometry changed."
+    },
+    {
+      "changeId": "ECR-0007",
+      "type": "ECR",
+      "title": "Rear-Facing Vertical Wireless Charging Requirement",
+      "reason": "Baseline charging design aims to avoid snow burial and support unattended operation.",
+      "impact": "Locks charging subsystem to rear vertical dock alignment.",
+      "affectedSkus": ["SB1-SS-900", "SB1-PRT-910", "SB1-PRT-920", "SB1-PRT-930"],
+      "approver": "Systems Lead",
+      "status": "Approved",
+      "date": "2025-10-26",
+      "notes": "Dock must remain operable during storms; alignment tolerance is critical."
+    },
+    {
+      "changeId": "ECO-0008",
+      "type": "ECO",
+      "title": "Wireless Receiver Alignment Tolerance Update (Rev A→B)",
+      "reason": "Docking tests showed misalignment due to packed snow at rear bumper.",
+      "impact": "Improves docking success rate; minor mechanical change.",
+      "affectedSkus": ["SB1-PRT-910"],
+      "approver": "Systems Lead",
+      "status": "Implemented",
+      "date": "2025-12-16",
+      "notes": "Update bumper guide spec and test checklist."
+    },
+    {
+      "changeId": "ECR-0009",
+      "type": "ECR",
+      "title": "Industrial Safety Lighting Baseline",
+      "reason": "Baseline defines safety lighting configuration (beacon + work + amber + side markers), no decorative lighting.",
+      "impact": "Locks lighting set and mounting constraints (low profile).",
+      "affectedSkus": ["SB1-SS-700", "SB1-PRT-710", "SB1-PRT-720", "SB1-PRT-730", "SB1-PRT-740"],
+      "approver": "Safety Lead",
+      "status": "Approved",
+      "date": "2025-10-06",
+      "notes": "All lamps must be sealed, shock-rated, and integrated into armor."
+    },
+    {
+      "changeId": "ECO-0010",
+      "type": "ECO",
+      "title": "Main Compute Thermal Headroom (Rev A→B)",
+      "reason": "Thermal margin insufficient when running perception workloads continuously.",
+      "impact": "Increases reliability; may change enclosure interface.",
+      "affectedSkus": ["SB1-PRT-810", "SB1-SS-800"],
+      "approver": "EE Lead",
+      "status": "Implemented",
+      "date": "2025-12-14",
+      "notes": "Monitor obsolescence risk; keep alternate qualification ongoing."
+    },
+    {
+      "changeId": "ECR-0011",
+      "type": "ECR",
+      "title": "Unmanned-Only Visual Language Lock",
+      "reason": "Baseline forbids cockpit/seat/steering/handlebars or any human-scale cabin volume.",
+      "impact": "Guides industrial robot form factor; affects industrial design and enclosure geometry.",
+      "affectedSkus": ["SB1-SS-100", "SB1-SS-800", "SB1-SS-600"],
+      "approver": "Chief Engineer",
+      "status": "Approved",
+      "date": "2025-10-08",
+      "notes": "Any 'looks drivable' concept is rejected."
+    }
+  ]
+}
