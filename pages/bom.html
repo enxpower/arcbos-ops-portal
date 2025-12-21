@@ -1,0 +1,412 @@
+
+---
+
+## 5) `pages/bom.html`
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>BOM Tree • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">BOM Tree • SnowBot Phase 1</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link nav__link--active" href="./bom.html">BOM Tree</a>
+        <a class="nav__link" href="./parts.html">Parts</a>
+        <a class="nav__link" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./changes.html">Changes</a>
+        <a class="nav__link" href="./rules.html">Rules</a>
+        <a class="nav__link" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">View</span>
+          <span id="viewHint" class="mono">—</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">BOM Tree</h1>
+        <p class="lead">
+          Expand/collapse nodes. Search by SKU / Node ID. Filter by Subsystem and Criticality.
+          Export current view to CSV.
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnExportCsv" type="button">Export CSV</button>
+        <a class="btn btn--ghost" href="./templates.html">Data Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Search & Filter</div>
+          <div class="muted small">Client-side</div>
+        </div>
+
+        <div class="form">
+          <label class="form__label">
+            <span class="muted small">Search</span>
+            <input id="q" class="input" type="text" placeholder="SKU, Node ID, Notes..." autocomplete="off" />
+          </label>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Subsystem</span>
+              <select id="subsystem" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Criticality</span>
+              <select id="criticality" class="select">
+                <option value="">All</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <button class="btn btn--ghost" id="btnExpandAll" type="button">Expand all</button>
+            <button class="btn btn--ghost" id="btnCollapseAll" type="button">Collapse all</button>
+            <button class="btn btn--ghost" id="btnReset" type="button">Reset</button>
+          </div>
+
+          <div class="hint" id="filterHint">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Validation (BOM)</div>
+          <div class="muted small">Rules from rules.json</div>
+        </div>
+        <div class="list" id="validationList">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Tree</div>
+        <div class="muted small mono" id="treeMeta">—</div>
+      </div>
+
+      <div id="treeRoot" class="tree">
+        <div class="skeleton">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">BOM Tree • All data from /data/bom.json</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script>
+    (async function bootBomPage(){
+      const ctx = {
+        rules: null,
+        bom: null,
+        parts: null,
+        suppliers: null
+      };
+
+      try {
+        const loaded = await arcbosDataLoadAll({ base: ".." });
+        ctx.rules = loaded.rules;
+        ctx.bom = loaded.bom;
+        ctx.parts = loaded.parts;
+        ctx.suppliers = loaded.suppliers;
+
+        const lastUpdated = ctx.rules?.meta?.lastUpdated || "—";
+        arcbosSetText("#lastUpdated", lastUpdated);
+        arcbosSetText("#viewHint", "Snapshot");
+        arcbosSetText("#buildStamp", "Build: static • Page: BOM");
+
+      } catch (err) {
+        arcbosSetText("#viewHint", "Load failed");
+        arcbosSetText("#treeRoot", "Data could not be loaded. See README (local server).");
+        return;
+      }
+
+      const nodes = Array.isArray(ctx.bom?.nodes) ? ctx.bom.nodes : [];
+      const nodeById = new Map(nodes.map(n => [n.nodeId, n]));
+      const childrenByParent = new Map();
+      for (const n of nodes) {
+        const p = n.parentNodeId || "";
+        if (!childrenByParent.has(p)) childrenByParent.set(p, []);
+        childrenByParent.get(p).push(n);
+      }
+      for (const [p, list] of childrenByParent.entries()) {
+        list.sort((a,b) => String(a.nodeId).localeCompare(String(b.nodeId)));
+      }
+
+      // Populate subsystem filter from nodes
+      const subsystems = Array.from(new Set(nodes.map(n => n.subsystem).filter(Boolean))).sort();
+      const selSubsystem = arcbos$("#subsystem");
+      for (const s of subsystems) {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        selSubsystem.appendChild(opt);
+      }
+
+      // Basic validation list (more rules will be enforced by validators.js later)
+      const issues = [];
+      for (const n of nodes) {
+        if (!n.nodeId) issues.push({ title: "Missing nodeId", meta: "A node lacks nodeId." });
+        if (n.parentNodeId && !nodeById.has(n.parentNodeId)) {
+          issues.push({ title: "Broken parent reference", meta: `Node ${n.nodeId} parent ${n.parentNodeId} not found.` });
+        }
+        if (!n.sku) issues.push({ title: "Missing SKU", meta: `Node ${n.nodeId} has no sku.` });
+        if (n.qty == null || n.qty === "" || Number(n.qty) <= 0) issues.push({ title: "Invalid Qty", meta: `Node ${n.nodeId} qty=${n.qty}` });
+        if (!n.unit) issues.push({ title: "Missing Unit", meta: `Node ${n.nodeId} has no unit.` });
+      }
+      const topIssues = issues.slice(0, 8);
+      arcbosRenderList("#validationList", topIssues.length ? topIssues : [{ title: "No blocking issues detected", meta: "Basic structural checks passed." }]);
+
+      // Render tree
+      const state = {
+        expanded: new Set([""]), // expand root by default
+        q: "",
+        subsystem: "",
+        criticality: ""
+      };
+
+      function matchesFilter(n) {
+        const q = state.q.trim().toLowerCase();
+        const crit = state.criticality;
+        const subsys = state.subsystem;
+
+        if (subsys && String(n.subsystem || "") !== subsys) return false;
+        if (crit && String(n.criticality || "") !== crit) return false;
+
+        if (!q) return true;
+
+        const hay = [
+          n.nodeId, n.parentNodeId, n.subsystem, n.sku, n.revision, n.unit, n.criticality,
+          (Array.isArray(n.suppliers) ? n.suppliers.join(" ") : ""),
+          n.notes
+        ].join(" ").toLowerCase();
+
+        return hay.includes(q);
+      }
+
+      function nodeHasVisibleDesc(n) {
+        // If a node doesn't match itself, keep it if any descendant matches
+        if (matchesFilter(n)) return true;
+        const kids = childrenByParent.get(n.nodeId) || [];
+        for (const k of kids) {
+          if (nodeHasVisibleDesc(k)) return true;
+        }
+        return false;
+      }
+
+      function renderNode(n, depth) {
+        const kids = childrenByParent.get(n.nodeId) || [];
+        const hasKids = kids.length > 0;
+
+        const row = document.createElement("div");
+        row.className = "treeRow";
+
+        const indent = document.createElement("div");
+        indent.className = "treeIndent";
+        indent.style.width = String(depth * 18) + "px";
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "treeToggle";
+        toggle.textContent = hasKids ? (state.expanded.has(n.nodeId) ? "−" : "+") : "·";
+        toggle.disabled = !hasKids;
+        toggle.setAttribute("aria-label", hasKids ? "Toggle" : "Leaf");
+
+        toggle.addEventListener("click", function(){
+          if (!hasKids) return;
+          if (state.expanded.has(n.nodeId)) state.expanded.delete(n.nodeId);
+          else state.expanded.add(n.nodeId);
+          render();
+        });
+
+        const main = document.createElement("div");
+        main.className = "treeMain";
+
+        const title = document.createElement("div");
+        title.className = "treeTitle";
+        title.textContent = `${n.sku}  ×${n.qty} ${n.unit}`;
+
+        const meta = document.createElement("div");
+        meta.className = "treeMeta";
+        const sup = Array.isArray(n.suppliers) && n.suppliers.length ? n.suppliers.join(", ") : "—";
+        meta.textContent = `Node: ${n.nodeId} • Subsystem: ${n.subsystem || "—"} • Rev: ${n.revision || "—"} • Criticality: ${n.criticality || "—"} • Suppliers: ${sup}`;
+
+        const note = document.createElement("div");
+        note.className = "treeNote";
+        note.textContent = n.notes || "";
+
+        main.appendChild(title);
+        main.appendChild(meta);
+        if (n.notes) main.appendChild(note);
+
+        const right = document.createElement("div");
+        right.className = "treeRight";
+
+        const crit = String(n.criticality || "");
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = crit || "—";
+        badge.dataset.level = crit;
+
+        right.appendChild(badge);
+
+        row.appendChild(indent);
+        row.appendChild(toggle);
+        row.appendChild(main);
+        row.appendChild(right);
+
+        const wrap = document.createElement("div");
+        wrap.appendChild(row);
+
+        if (hasKids && state.expanded.has(n.nodeId)) {
+          for (const k of kids) {
+            if (!nodeHasVisibleDesc(k)) continue;
+            wrap.appendChild(renderNode(k, depth + 1));
+          }
+        }
+
+        return wrap;
+      }
+
+      function render() {
+        const root = arcbos$("#treeRoot");
+        root.innerHTML = "";
+
+        const roots = childrenByParent.get("") || [];
+        const visibleRoots = roots.filter(r => nodeHasVisibleDesc(r));
+
+        for (const r of visibleRoots) {
+          root.appendChild(renderNode(r, 0));
+        }
+
+        const q = state.q.trim();
+        const s = state.subsystem || "All";
+        const c = state.criticality || "All";
+        arcbosSetText("#filterHint", `Filter: Subsystem=${s} • Criticality=${c} • Search="${q || ""}"`);
+        arcbosSetText("#treeMeta", `Nodes: ${nodes.length} • Visible roots: ${visibleRoots.length}`);
+      }
+
+      function expandAll() {
+        for (const n of nodes) state.expanded.add(n.nodeId);
+        state.expanded.add("");
+        render();
+      }
+
+      function collapseAll() {
+        state.expanded = new Set([""]);
+        render();
+      }
+
+      function reset() {
+        state.q = "";
+        state.subsystem = "";
+        state.criticality = "";
+        state.expanded = new Set([""]);
+        arcbos$("#q").value = "";
+        arcbos$("#subsystem").value = "";
+        arcbos$("#criticality").value = "";
+        render();
+      }
+
+      // Events
+      arcbos$("#q").addEventListener("input", function(e){
+        state.q = e.target.value || "";
+        render();
+      });
+      arcbos$("#subsystem").addEventListener("change", function(e){
+        state.subsystem = e.target.value || "";
+        render();
+      });
+      arcbos$("#criticality").addEventListener("change", function(e){
+        state.criticality = e.target.value || "";
+        render();
+      });
+
+      arcbos$("#btnExpandAll").addEventListener("click", expandAll);
+      arcbos$("#btnCollapseAll").addEventListener("click", collapseAll);
+      arcbos$("#btnReset").addEventListener("click", reset);
+
+      arcbos$("#btnExportCsv").addEventListener("click", function(){
+        const rows = [];
+        rows.push([
+          "nodeId","parentNodeId","subsystem","sku","qty","unit","revision","criticality","suppliers","notes"
+        ]);
+
+        // Export "visible" nodes only based on current filter.
+        function walk(nodeId) {
+          const kids = childrenByParent.get(nodeId) || [];
+          for (const k of kids) {
+            if (!nodeHasVisibleDesc(k)) continue;
+            if (matchesFilter(k)) {
+              rows.push([
+                k.nodeId,
+                k.parentNodeId || "",
+                k.subsystem || "",
+                k.sku || "",
+                String(k.qty ?? ""),
+                k.unit || "",
+                k.revision || "",
+                k.criticality || "",
+                Array.isArray(k.suppliers) ? k.suppliers.join("|") : "",
+                (k.notes || "").replace(/\r?\n/g, " ")
+              ]);
+            }
+            walk(k.nodeId);
+          }
+        }
+        walk("");
+
+        const csv = arcbosCsvEncode(rows);
+        arcbosDownloadText(csv, "arcbos_bom_view.csv", "text/csv");
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
