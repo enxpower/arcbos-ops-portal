@@ -1,0 +1,67 @@
+
+---
+
+
+```json
+{
+  "meta": {
+    "lastUpdated": "2025-12-20",
+    "version": "1.0",
+    "owner": "ARCBOS Ops"
+  },
+  "sku": {
+    "format": "SB{platform}-{layer}-{seq}",
+    "layers": [
+      { "id": "PLT", "name": "Platform", "prefix": "SB{platform}-PLT" },
+      { "id": "SS",  "name": "Subsystem", "prefix": "SB{platform}-SS" },
+      { "id": "ASM", "name": "Assembly", "prefix": "SB{platform}-ASM" },
+      { "id": "PRT", "name": "Part", "prefix": "SB{platform}-PRT" },
+      { "id": "CNS", "name": "Consumable", "prefix": "SB{platform}-CNS" },
+      { "id": "TOL", "name": "Tooling", "prefix": "SB{platform}-TOL" }
+    ],
+    "platforms": [
+      { "platform": "1", "name": "SnowBot V1" }
+    ]
+  },
+  "status": {
+    "allowed": ["Concept", "Proto", "Alpha", "Beta", "Production", "Obsolete"],
+    "transitions": {
+      "Concept": ["Proto", "Obsolete"],
+      "Proto": ["Alpha", "Obsolete"],
+      "Alpha": ["Beta", "Obsolete"],
+      "Beta": ["Production", "Obsolete"],
+      "Production": ["Obsolete"],
+      "Obsolete": []
+    }
+  },
+  "supplierScoring": {
+    "range": { "min": 1, "max": 5 },
+    "weights": {
+      "quality": 0.26,
+      "delivery": 0.18,
+      "cost": 0.12,
+      "engineeringSupport": 0.16,
+      "compliance": 0.18,
+      "risk": 0.10
+    }
+  },
+  "criticality": {
+    "allowed": ["Low", "Medium", "High", "Critical"]
+  },
+  "interchangeability": {
+    "allowed": ["Drop-in", "Requires ECO", "Not Compatible"]
+  },
+  "validation": {
+    "required": {
+      "bom.nodes": ["nodeId", "parentNodeId", "subsystem", "sku", "qty", "unit", "revision", "criticality"],
+      "parts.parts": ["sku", "name", "type", "revision", "status", "owner", "date", "criticality"],
+      "suppliers.suppliers": ["supplierId", "name", "region", "status", "scores"],
+      "changes.changes": ["changeId", "type", "title", "reason", "impact", "affectedSkus", "status", "date"]
+    },
+    "checks": {
+      "uniqueIds": "Ensure nodeId / sku / supplierId / changeId are unique. IDs must remain stable.",
+      "bomHasRoot": "At least one BOM node must have empty parentNodeId as the root.",
+      "statusAllowed": "Parts status must be in rules.status.allowed."
+    }
+  }
+}
