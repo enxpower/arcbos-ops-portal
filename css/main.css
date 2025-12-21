@@ -1,0 +1,321 @@
+/* ARCBOS Ops Portal
+   Style goals: white minimal, dense but readable, engineering/audit feel.
+   No external fonts. No fancy animations. */
+
+:root{
+  --bg: #ffffff;
+  --fg: #0b1220;
+  --muted: #5b677a;
+  --line: #e6e9ef;
+  --card: #ffffff;
+  --shadow: 0 1px 0 rgba(20, 24, 31, 0.04);
+
+  --accent: #0b1220;
+  --accent2: #1f2937;
+
+  --ok: #0f766e;
+  --warn: #b45309;
+  --bad: #b91c1c;
+
+  --pill: #f3f4f6;
+  --badge: #eef2ff;
+
+  --radius: 14px;
+  --radius2: 10px;
+  --pad: 14px;
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+*{ box-sizing: border-box; }
+html, body{
+  height: 100%;
+}
+body{
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  line-height: 1.35;
+}
+
+a{ color: inherit; text-decoration: none; }
+a:hover{ text-decoration: underline; }
+
+.container{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 22px 18px 44px;
+}
+
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar__inner{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 340px 1fr 220px;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.brand__mark{
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.brand__text{ min-width: 0; }
+.brand__title{
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand__sub{
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.nav__link{
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.nav__link:hover{
+  border-color: var(--line);
+  color: var(--fg);
+  text-decoration: none;
+}
+.nav__link--active{
+  color: var(--fg);
+  border-color: var(--line);
+  background: #fafafa;
+}
+
+.meta{
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+.meta__item{
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.muted{ color: var(--muted); }
+.small{ font-size: 12px; }
+.mono{ font-family: var(--mono); }
+
+.hero{
+  margin-top: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfbfc;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.h1{
+  margin: 0 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.lead{
+  margin: 0;
+  color: var(--muted);
+  max-width: 860px;
+}
+.hero__actions{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--fg);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+.btn:hover{ text-decoration: none; opacity: 0.95; }
+.btn--ghost{
+  background: #fff;
+  color: var(--fg);
+}
+
+.grid{
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
+}
+.grid--3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid--2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.card{
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding: var(--pad);
+  min-height: 140px;
+}
+.card__head{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.card__title{
+  font-weight: 700;
+  font-size: 14px;
+}
+.pill{
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--pill);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+}
+.badge{
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--badge);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--fg);
+}
+.hint{
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kv{
+  display: grid;
+  gap: 8px;
+}
+.kv__row{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px dashed #eef0f4;
+  padding-bottom: 6px;
+}
+.kv__row:last-child{
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.kv__k{ font-size: 12px; }
+.kv__v{ font-size: 12px; }
+
+.list{
+  display: grid;
+  gap: 10px;
+}
+.listItem{
+  border: 1px solid var(--line);
+  border-radius: var(--radius2);
+  padding: 10px 10px;
+  background: #ffffff;
+}
+.listItem__title{
+  font-size: 13px;
+  font-weight: 650;
+  margin: 0 0 4px;
+}
+.listItem__meta{
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.skeleton{
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius2);
+  padding: 10px;
+  background: #fbfbfc;
+}
+
+.callout{
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fcfcfd;
+  padding: 14px;
+}
+.callout__title{
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.callout__body{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.footer{
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+.footer__inner{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 980px){
+  .topbar__inner{ grid-template-columns: 1fr; }
+  .meta{ justify-items: start; }
+  .nav{ justify-content: flex-start; }
+  .grid--3{ grid-template-columns: 1fr; }
+  .grid--2{ grid-template-columns: 1fr; }
+  .hero{ flex-direction: column; align-items: flex-start; }
+  .hero__actions{ justify-content: flex-start; }
+}
