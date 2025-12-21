@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Rules • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">SKU hierarchy • Status machine • Scoring weights • Validation rules</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link" href="./bom.html">BOM Tree</a>
+        <a class="nav__link" href="./parts.html">Parts</a>
+        <a class="nav__link" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./changes.html">Changes</a>
+        <a class="nav__link nav__link--active" href="./rules.html">Rules</a>
+        <a class="nav__link" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Rules file</span>
+          <span class="mono">/data/rules.json</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Rules</h1>
+        <p class="lead">
+          This page is the single source of truth for SKU layering, lifecycle status, supplier scoring weights, and validation behavior.
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnOpenJson" type="button">View rules.json</button>
+        <a class="btn btn--ghost" href="./templates.html">Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">SKU hierarchy</div>
+          <div class="muted small">rules.json • sku</div>
+        </div>
+        <div id="skuHierarchy">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Lifecycle status</div>
+          <div class="muted small">rules.json • status</div>
+        </div>
+        <div id="statusRules">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid--2" style="margin-top:14px;">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Supplier scoring</div>
+          <div class="muted small">weights + range</div>
+        </div>
+        <div id="supplierScoring">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Validation</div>
+          <div class="muted small">required fields + checks</div>
+        </div>
+        <div id="validationRules">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Operational notes</div>
+        <div class="muted small">How this enforces discipline</div>
+      </div>
+
+      <div class="prose">
+        <ul>
+          <li><strong>Data over code:</strong> Changing rules.json updates behavior across the portal without code edits.</li>
+          <li><strong>Audit-ready:</strong> Status + revision + owner + date are mandatory at the data layer (validators).</li>
+          <li><strong>Consistent scoring:</strong> Supplier score is computed from weights in rules.json.</li>
+          <li><strong>Portable:</strong> No backend, no database, no build pipeline.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">Rules • Read-only view</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    (async function bootRules(){
+      const rootLast = document.getElementById("lastUpdated");
+      const stamp = document.getElementById("buildStamp");
+
+      try {
+        const loaded = await arcbosDataLoadAll({ base: ".." });
+        const rules = loaded.rules || {};
+        rootLast.textContent = rules?.meta?.lastUpdated || "—";
+        stamp.textContent = "Build: static • Page: Rules";
+
+        // SKU hierarchy
+        const sku = rules.sku || {};
+        const layers = Array.isArray(sku.layers) ? sku.layers : [];
+        const format = sku.format || "—";
+
+        const skuBox = document.createElement("div");
+        skuBox.className = "prose";
+        skuBox.innerHTML = "";
+        const p1 = document.createElement("p");
+        p1.innerHTML = "<span class='muted small'>SKU format</span><br><span class='mono'>" + String(format) + "</span>";
+        skuBox.appendChild(p1);
+
+        const list = document.createElement("ul");
+        for (const l of layers) {
+          const li = document.createElement("li");
+          li.innerHTML = "<strong>" + String(l.id || "—") + "</strong> — " + String(l.name || "—") +
+            " <span class='muted small'>(prefix: <span class='mono'>" + String(l.prefix || "—") + "</span>)</span>";
+          list.appendChild(li);
+        }
+        skuBox.appendChild(list);
+        document.getElementById("skuHierarchy").innerHTML = "";
+        document.getElementById("skuHierarchy").appendChild(skuBox);
+
+        // Status rules
+        const status = rules.status || {};
+        const allowed = Array.isArray(status.allowed) ? status.allowed : [];
+        const transitions = status.transitions || {};
+
+        const stWrap = document.createElement("div");
+        stWrap.className = "prose";
+        const stBadges = document.createElement("div");
+        stBadges.className = "tagRow";
+        for (const s of allowed) {
+          stBadges.appendChild(arcbosBadge(String(s), { kind: "status", level: String(s) }));
+        }
+        stWrap.appendChild(stBadges);
+
+        const transTitle = document.createElement("div");
+        transTitle.className = "muted small";
+        transTitle.textContent = "Allowed transitions";
+        stWrap.appendChild(transTitle);
+
+        const transTable = document.createElement("table");
+        transTable.className = "miniTable";
+        const thead = document.createElement("thead");
+        thead.innerHTML = "<tr><th>From</th><th>To</th></tr>";
+        transTable.appendChild(thead);
+        const tbody = document.createElement("tbody");
+        for (const from of Object.keys(transitions)) {
+          const to = Array.isArray(transitions[from]) ? transitions[from] : [];
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td class='mono'>" + String(from) + "</td><td>" + to.map(x => "<span class='mono'>" + String(x) + "</span>").join(", ") + "</td>";
+          tbody.appendChild(tr);
+        }
+        transTable.appendChild(tbody);
+        stWrap.appendChild(transTable);
+
+        document.getElementById("statusRules").innerHTML = "";
+        document.getElementById("statusRules").appendChild(stWrap);
+
+        // Supplier scoring
+        const sc = rules.supplierScoring || {};
+        const range = sc.range || { min: 1, max: 5 };
+        const weights = sc.weights || {};
+
+        const scWrap = document.createElement("div");
+        scWrap.className = "prose";
+
+        const scMeta = document.createElement("p");
+        scMeta.innerHTML = "<span class='muted small'>Score range</span><br><span class='mono'>" +
+          String(range.min) + "–" + String(range.max) + "</span>";
+        scWrap.appendChild(scMeta);
+
+        const wTable = document.createElement("table");
+        wTable.className = "miniTable";
+        wTable.innerHTML = "<thead><tr><th>Metric</th><th>Weight</th></tr></thead>";
+        const wBody = document.createElement("tbody");
+        for (const k of Object.keys(weights)) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td class='mono'>" + String(k) + "</td><td class='mono'>" + String(weights[k]) + "</td>";
+          wBody.appendChild(tr);
+        }
+        wTable.appendChild(wBody);
+        scWrap.appendChild(wTable);
+
+        document.getElementById("supplierScoring").innerHTML = "";
+        document.getElementById("supplierScoring").appendChild(scWrap);
+
+        // Validation rules summary
+        const v = rules.validation || {};
+        const req = v.required || {};
+        const checks = v.checks || {};
+
+        const vWrap = document.createElement("div");
+        vWrap.className = "prose";
+
+        const reqTitle = document.createElement("div");
+        reqTitle.className = "muted small";
+        reqTitle.textContent = "Required fields (by dataset)";
+        vWrap.appendChild(reqTitle);
+
+        const reqTable = document.createElement("table");
+        reqTable.className = "miniTable";
+        reqTable.innerHTML = "<thead><tr><th>Dataset</th><th>Required</th></tr></thead>";
+        const reqBody = document.createElement("tbody");
+        for (const ds of Object.keys(req)) {
+          const fields = Array.isArray(req[ds]) ? req[ds] : [];
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td class='mono'>" + String(ds) + "</td><td>" + fields.map(f => "<span class='mono'>" + String(f) + "</span>").join(", ") + "</td>";
+          reqBody.appendChild(tr);
+        }
+        reqTable.appendChild(reqBody);
+        vWrap.appendChild(reqTable);
+
+        const chkTitle = document.createElement("div");
+        chkTitle.className = "muted small";
+        chkTitle.style.marginTop = "10px";
+        chkTitle.textContent = "Checks";
+        vWrap.appendChild(chkTitle);
+
+        const chkList = document.createElement("ul");
+        for (const k of Object.keys(checks)) {
+          const li = document.createElement("li");
+          li.innerHTML = "<strong class='mono'>" + String(k) + "</strong> — " + String(checks[k] || "");
+          chkList.appendChild(li);
+        }
+        vWrap.appendChild(chkList);
+
+        document.getElementById("validationRules").innerHTML = "";
+        document.getElementById("validationRules").appendChild(vWrap);
+
+        document.getElementById("btnOpenJson").addEventListener("click", function(){
+          arcbosOpenDrawer("rules.json", arcbosCodeBlock(JSON.stringify(rules, null, 2)));
+        });
+      } catch (err) {
+        document.getElementById("skuHierarchy").textContent = "Rules could not be loaded. See README (local server).";
+        document.getElementById("statusRules").textContent = "—";
+        document.getElementById("supplierScoring").textContent = "—";
+        document.getElementById("validationRules").textContent = "—";
+        stamp.textContent = "Build: static • Page: Rules";
+      }
+    })();
+  </script>
+</body>
+</html>
