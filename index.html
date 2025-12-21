@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="./css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">SnowBot Phase 1 • Audit-first • No backend</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link nav__link--active" href="./index.html">Dashboard</a>
+        <a class="nav__link" href="./pages/bom.html">BOM Tree</a>
+        <a class="nav__link" href="./pages/parts.html">Parts</a>
+        <a class="nav__link" href="./pages/suppliers.html">Suppliers</a>
+        <a class="nav__link" href="./pages/changes.html">Changes</a>
+        <a class="nav__link" href="./pages/rules.html">Rules</a>
+        <a class="nav__link" href="./pages/templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Data</span>
+          <span id="dataMode" class="mono">—</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Operational Truth, Not Slides.</h1>
+        <p class="lead">
+          This portal is a lightweight, audit-friendly system for managing BOM trees, parts, suppliers, and engineering changes.
+          Data lives in version-controlled JSON files under <span class="mono">/data</span>.
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <a class="btn" href="./pages/bom.html">Open BOM Tree</a>
+        <a class="btn btn--ghost" href="./pages/templates.html">Get Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--3">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">This week</div>
+          <div class="pill" id="pillWeek">—</div>
+        </div>
+        <div class="kv">
+          <div class="kv__row">
+            <div class="kv__k muted">New changes</div>
+            <div class="kv__v mono" id="kpiNewChanges">—</div>
+          </div>
+          <div class="kv__row">
+            <div class="kv__k muted">ECO approved</div>
+            <div class="kv__v mono" id="kpiEcoApproved">—</div>
+          </div>
+          <div class="kv__row">
+            <div class="kv__k muted">Open ECR</div>
+            <div class="kv__v mono" id="kpiOpenEcr">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">BOM health</div>
+          <div class="badge" id="badgeBomHealth">—</div>
+        </div>
+        <div class="kv">
+          <div class="kv__row">
+            <div class="kv__k muted">Nodes</div>
+            <div class="kv__v mono" id="kpiBomNodes">—</div>
+          </div>
+          <div class="kv__row">
+            <div class="kv__k muted">High criticality</div>
+            <div class="kv__v mono" id="kpiHighCrit">—</div>
+          </div>
+          <div class="kv__row">
+            <div class="kv__k muted">Missing suppliers</div>
+            <div class="kv__v mono" id="kpiMissingSuppliers">—</div>
+          </div>
+        </div>
+        <div class="hint" id="bomHealthHint">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Top suppliers</div>
+          <div class="muted small">Weighted score</div>
+        </div>
+        <div class="list" id="topSuppliers">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Key risks</div>
+          <div class="muted small">From suppliers + parts</div>
+        </div>
+        <div class="list" id="keyRisks">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Recent changes</div>
+          <div class="muted small">ECR/ECO</div>
+        </div>
+        <div class="list" id="recentChanges">
+          <div class="skeleton">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="footerNote">
+      <div class="callout">
+        <div class="callout__title">Non-goals</div>
+        <div class="callout__body">
+          No accounts, no backend, no uploads, no private data ingestion.
+          All edits happen via git commits to JSON files.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">
+        ARCBOS Ops Portal • Static site • Versioned data • Built for long-term maintainability
+      </div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="./js/utils.js"></script>
+  <script>
+    // Dashboard bootstrap (kept tiny here; full logic will move to js/dashboard.js later).
+    (async function boot() {
+      const state = {
+        mode: "unknown",
+        rules: null,
+        bom: null,
+        parts: null,
+        suppliers: null,
+        changes: null
+      };
+
+      try {
+        // Try fetch-based loading first (GitHub Pages works). File:// may fail in some browsers.
+        const [rules, bom, parts, suppliers, changes] = await Promise.all([
+          arcbosLoadJson("./data/rules.json"),
+          arcbosLoadJson("./data/bom.json"),
+          arcbosLoadJson("./data/parts.json"),
+          arcbosLoadJson("./data/suppliers.json"),
+          arcbosLoadJson("./data/changes.json")
+        ]);
+        state.mode = "fetch";
+        state.rules = rules;
+        state.bom = bom;
+        state.parts = parts;
+        state.suppliers = suppliers;
+        state.changes = changes;
+      } catch (err) {
+        state.mode = "fetch_failed";
+        arcbosSetText("#dataMode", "fetch failed");
+        arcbosSetText("#lastUpdated", "—");
+        arcbosSetText("#buildStamp", "Data load failed. See README for local server.");
+        arcbosRenderList("#topSuppliers", [{
+          title: "Data could not be loaded.",
+          meta: "If you opened via file://, run a local static server."
+        }]);
+        arcbosRenderList("#keyRisks", [{
+          title: "No data",
+          meta: "Fix data loading first."
+        }]);
+        arcbosRenderList("#recentChanges", [{
+          title: "No data",
+          meta: "Fix data loading first."
+        }]);
+        return;
+      }
+
+      // Header meta
+      const lastUpdated =
+        (state.rules && state.rules.meta && state.rules.meta.lastUpdated) ? state.rules.meta.lastUpdated : "—";
+      arcbosSetText("#lastUpdated", lastUpdated);
+      arcbosSetText("#dataMode", state.mode);
+      arcbosSetText("#buildStamp", "Build: static • Data: /data/*.json");
+
+      // KPIs: This week (simple heuristic: last 7 days vs rules.meta.lastUpdated date)
+      const weekWindowDays = 7;
+      const now = arcbosSafeDate(lastUpdated) || new Date();
+      const since = new Date(now.getTime() - weekWindowDays * 24 * 60 * 60 * 1000);
+
+      const changes = Array.isArray(state.changes?.changes) ? state.changes.changes : [];
+      const recent = changes
+        .map(c => ({ ...c, _d: arcbosSafeDate(c.date) }))
+        .filter(c => c._d && c._d >= since)
+        .sort((a, b) => b._d - a._d);
+
+      const newChanges = recent.length;
+      const ecoApproved = recent.filter(c => (c.type === "ECO") && (c.status === "Approved")).length;
+      const openEcr = changes.filter(c => (c.type === "ECR") && (c.status !== "Closed")).length;
+
+      arcbosSetText("#kpiNewChanges", String(newChanges));
+      arcbosSetText("#kpiEcoApproved", String(ecoApproved));
+      arcbosSetText("#kpiOpenEcr", String(openEcr));
+      arcbosSetText("#pillWeek", "Last 7 days");
+
+      // BOM health
+      const nodes = Array.isArray(state.bom?.nodes) ? state.bom.nodes : [];
+      const totalNodes = nodes.length;
+      const highCrit = nodes.filter(n => (n.criticality || "").toLowerCase() === "high").length;
+      const missingSup = nodes.filter(n => !Array.isArray(n.suppliers) || n.suppliers.length === 0).length;
+
+      arcbosSetText("#kpiBomNodes", String(totalNodes));
+      arcbosSetText("#kpiHighCrit", String(highCrit));
+      arcbosSetText("#kpiMissingSuppliers", String(missingSup));
+
+      const health = arcbosScoreBomHealth({ totalNodes, highCrit, missingSup });
+      arcbosSetText("#badgeBomHealth", health.label);
+      arcbosSetText("#bomHealthHint", health.hint);
+
+      // Supplier ranking
+      const supplierList = Array.isArray(state.suppliers?.suppliers) ? state.suppliers.suppliers : [];
+      const weights = state.rules?.supplierScoring?.weights || {};
+      const ranked = supplierList
+        .map(s => {
+          const score = arcbosWeightedSupplierScore(s.scores || {}, weights);
+          return { ...s, _score: score };
+        })
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 5);
+
+      arcbosRenderList("#topSuppliers", ranked.map(s => ({
+        title: `${s.name} (${s.supplierId})`,
+        meta: `Score: ${arcbosFmt1(s._score)} • Region: ${s.region || "—"} • Tags: ${(s.riskTags || []).join(", ") || "—"}`
+      })));
+
+      // Key risks (simple aggregation)
+      const risks = [];
+      for (const s of supplierList) {
+        for (const t of (s.riskTags || [])) {
+          risks.push({ kind: "Supplier", ref: s.supplierId, tag: t });
+        }
+      }
+      const parts = Array.isArray(state.parts?.parts) ? state.parts.parts : [];
+      for (const p of parts) {
+        for (const t of (p.riskTags || [])) {
+          risks.push({ kind: "Part", ref: p.sku, tag: t });
+        }
+      }
+      const grouped = arcbosCountBy(risks, r => r.tag || "Unspecified");
+      const topRisks = Object.entries(grouped)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([tag, count]) => ({ tag, count }));
+
+      arcbosRenderList("#keyRisks", topRisks.map(r => ({
+        title: r.tag,
+        meta: `Occurrences: ${r.count}`
+      })));
+
+      // Recent changes list
+      arcbosRenderList("#recentChanges", recent.slice(0, 6).map(c => ({
+        title: `${c.changeId} • ${c.type} • ${c.title}`,
+        meta: `Status: ${c.status} • Date: ${c.date} • Approver: ${c.approver || "—"}`
+      })));
+    })();
+  </script>
+</body>
+</html>
