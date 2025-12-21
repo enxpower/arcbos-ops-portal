@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Changes • ARCBOS Ops Portal</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">A</div>
+        <div class="brand__text">
+          <div class="brand__title">ARCBOS Ops Portal</div>
+          <div class="brand__sub">ECR / ECO • Traceability to Parts + BOM nodes</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__link" href="../index.html">Dashboard</a>
+        <a class="nav__link" href="./bom.html">BOM Tree</a>
+        <a class="nav__link" href="./parts.html">Parts</a>
+        <a class="nav__link" href="./suppliers.html">Suppliers</a>
+        <a class="nav__link nav__link--active" href="./changes.html">Changes</a>
+        <a class="nav__link" href="./rules.html">Rules</a>
+        <a class="nav__link" href="./templates.html">Templates</a>
+      </nav>
+
+      <div class="meta">
+        <div class="meta__item">
+          <span class="muted">Last updated</span>
+          <span id="lastUpdated" class="mono">—</span>
+        </div>
+        <div class="meta__item">
+          <span class="muted">Changes</span>
+          <span id="rowCount" class="mono">—</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1 class="h1">Change Log</h1>
+        <p class="lead">
+          ECR (request) and ECO (order) entries with clear traceability. Click a row to open detail drawer (affected SKUs, related BOM nodes, supplier impact notes).
+        </p>
+      </div>
+
+      <div class="hero__actions">
+        <button class="btn" id="btnExportCsv" type="button">Export CSV</button>
+        <a class="btn btn--ghost" href="./templates.html">Templates</a>
+      </div>
+    </section>
+
+    <section class="grid grid--2">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Search & Filter</div>
+          <div class="muted small">Client-side</div>
+        </div>
+
+        <div class="form">
+          <label class="form__label">
+            <span class="muted small">Search</span>
+            <input id="q" class="input" type="text" placeholder="Change ID, title, reason, affected SKUs..." autocomplete="off" />
+          </label>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Type</span>
+              <select id="type" class="select">
+                <option value="">All</option>
+                <option value="ECR">ECR</option>
+                <option value="ECO">ECO</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Status</span>
+              <select id="status" class="select">
+                <option value="">All</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form__row">
+            <label class="form__label">
+              <span class="muted small">Sort</span>
+              <select id="sort" class="select">
+                <option value="date_desc">Date (New → Old)</option>
+                <option value="date_asc">Date (Old → New)</option>
+                <option value="id_asc">Change ID (A → Z)</option>
+              </select>
+            </label>
+
+            <label class="form__label">
+              <span class="muted small">Approver</span>
+              <input id="approver" class="input" type="text" placeholder="Name (optional)" autocomplete="off" />
+            </label>
+          </div>
+
+          <div class="form__row">
+            <button class="btn btn--ghost" id="btnReset" type="button">Reset</button>
+          </div>
+
+          <div class="hint" id="filterHint">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="card__title">Traceability tips</div>
+          <div class="muted small">Audit-friendly</div>
+        </div>
+        <div class="list" id="tipsList"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <div class="card__head">
+        <div class="card__title">Table</div>
+        <div class="muted small mono" id="tableMeta">—</div>
+      </div>
+      <div id="changesTable">
+        <div class="skeleton">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="muted small">Change Log • All data from /data/changes.json</div>
+      <div class="muted small mono" id="buildStamp">—</div>
+    </div>
+  </footer>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/data.js"></script>
+  <script src="../js/ui.js"></script>
+
+  <script>
+    (async function bootChangesPage(){
+      const ctx = { rules:null, bom:null, parts:null, suppliers:null, changes:null };
+
+      try {
+        const loaded = await arcbosDataLoadAll({ base: ".." });
+        ctx.rules = loaded.rules;
+        ctx.bom = loaded.bom;
+        ctx.parts = loaded.parts;
+        ctx.suppliers = loaded.suppliers;
+        ctx.changes = loaded.changes;
+
+        arcbosSetText("#lastUpdated", ctx.rules?.meta?.lastUpdated || "—");
+        arcbosSetText("#buildStamp", "Build: static • Page: Changes");
+      } catch (err) {
+        arcbosSetText("#changesTable", "Data could not be loaded. See README (local server).");
+        return;
+      }
+
+      const changes = Array.isArray(ctx.changes?.changes) ? ctx.changes.changes : [];
+      const nodes = Array.isArray(ctx.bom?.nodes) ? ctx.bom.nodes : [];
+
+      // SKU -> BOM nodes
+      const nodesBySku = new Map();
+      for (const n of nodes) {
+        const sku = String(n.sku || "");
+        if (!sku) continue;
+        if (!nodesBySku.has(sku)) nodesBySku.set(sku, []);
+        nodesBySku.get(sku).push(n);
+      }
+
+      // Populate status options (from rules if present)
+      const statusAllowed = ctx.rules?.changes?.status || ["Draft","In Review","Approved","Implemented","Rejected"];
+      const selStatus = arcbos$("#status");
+      for (const st of statusAllowed) {
+        const o = document.createElement("option");
+        o.value = st;
+        o.textContent = st;
+        selStatus.appendChild(o);
+      }
+
+      arcbosRenderList("#tipsList", [
+        { title: "ECR vs ECO", meta: "ECR requests change. ECO authorizes implementation." },
+        { title: "Always list affected SKUs", meta: "This enables traceability to Parts and BOM nodes." },
+        { title: "Record supplier impact", meta: "If supplier changes, note supplier IDs and reasons." },
+        { title: "Use dates consistently", meta: "YYYY-MM-DD recommended." }
+      ]);
+
+      const state = { q:"", type:"", status:"", sort:"date_desc", approver:"" };
+
+      function matchChange(c) {
+        if (state.type && String(c.type || "") !== state.type) return false;
+        if (state.status && String(c.status || "") !== state.status) return false;
+
+        const a = state.approver.trim().toLowerCase();
+        if (a) {
+          const ap = String(c.approver || "").toLowerCase();
+          if (!ap.includes(a)) return false;
+        }
+
+        const q = state.q.trim().toLowerCase();
+        if (!q) return true;
+
+        const hay = [
+          c.changeId, c.type, c.status, c.title, c.reason, c.impact, c.approver, c.date,
+          (Array.isArray(c.affectedSkus) ? c.affectedSkus.join(" ") : "")
+        ].join(" ").toLowerCase();
+
+        return hay.includes(q);
+      }
+
+      function sortChanges(list) {
+        const mode = state.sort;
+        const arr = list.slice();
+        if (mode === "date_asc") {
+          arr.sort((a,b) => String(a.date || "").localeCompare(String(b.date || "")));
+          return arr;
+        }
+        if (mode === "id_asc") {
+          arr.sort((a,b) => String(a.changeId || "").localeCompare(String(b.changeId || "")));
+          return arr;
+        }
+        // date_desc default
+        arr.sort((a,b) => String(b.date || "").localeCompare(String(a.date || "")));
+        return arr;
+      }
+
+      function visibleChanges() {
+        return sortChanges(changes.filter(matchChange));
+      }
+
+      function changeDetailNode(c) {
+        const wrap = arcbosEl("div", "", "");
+
+        const head = arcbosEl("div", "detailHead", "");
+        const left = arcbosEl("div", "", "");
+        left.appendChild(arcbosEl("div", "detailSku mono", c.changeId || "—"));
+        left.appendChild(arcbosEl("div", "detailName", c.title || "—"));
+
+        const right = arcbosEl("div", "detailBadges", "");
+        right.appendChild(arcbosBadge(c.type || "—", { kind: "type" }));
+        right.appendChild(arcbosBadge(c.status || "—", { kind: "status", level: c.status }));
+
+        head.appendChild(left);
+        head.appendChild(right);
+        wrap.appendChild(head);
+
+        wrap.appendChild(arcbosKvList([
+          { k: "Date", v: c.date || "—" },
+          { k: "Approver", v: c.approver || "—" },
+          { k: "Reason", v: c.reason || "—" },
+          { k: "Impact", v: c.impact || "—" }
+        ]));
+
+        const skuBlock = arcbosEl("div", "detailBlock", "");
+        skuBlock.appendChild(arcbosEl("div", "detailBlock__title", "Affected SKUs"));
+        const skus = Array.isArray(c.affectedSkus) ? c.affectedSkus : [];
+        if (skus.length === 0) {
+          skuBlock.appendChild(arcbosEl("div", "muted small", "No SKUs listed."));
+        } else {
+          const list = arcbosEl("div", "detailList", "");
+          for (const sku of skus) {
+            const item = arcbosEl("div", "detailList__item", "");
+            item.appendChild(arcbosEl("div", "mono", sku));
+
+            const bn = nodesBySku.get(String(sku)) || [];
+            const meta = bn.length
+              ? ("BOM nodes: " + bn.map(n => n.nodeId).slice(0, 6).join(", ") + (bn.length > 6 ? "…" : ""))
+              : "BOM nodes: 0";
+            item.appendChild(arcbosEl("div", "muted small", meta));
+
+            list.appendChild(item);
+          }
+          skuBlock.appendChild(list);
+        }
+        wrap.appendChild(skuBlock);
+
+        if (c.notes) {
+          const notes = arcbosEl("div", "detailNotes", "");
+          notes.appendChild(arcbosEl("div", "muted small", "Notes"));
+          notes.appendChild(arcbosEl("div", "detailNotes__body", c.notes));
+          wrap.appendChild(notes);
+        }
+
+        return wrap;
+      }
+
+      const columns = [
+        { key: "changeId", label: "Change ID", width: "160px", render: (c) => arcbosEl("span", "mono", c.changeId || "") },
+        { key: "type", label: "Type", width: "80px", render: (c) => arcbosBadge(c.type || "—", { kind: "type" }) },
+        { key: "status", label: "Status", width: "140px", render: (c) => arcbosBadge(c.status || "—", { kind: "status", level: c.status }) },
+        { key: "date", label: "Date", width: "110px", render: (c) => arcbosEl("span", "mono", c.date || "") },
+        { key: "title", label: "Title", render: (c) => c.title || "" },
+        { key: "affectedSkus", label: "Affected", width: "120px", render: (c) => arcbosEl("span", "mono", String((Array.isArray(c.affectedSkus) ? c.affectedSkus.length : 0))) },
+        { key: "approver", label: "Approver", width: "160px", render: (c) => c.approver || "" }
+      ];
+
+      function render() {
+        const rows = visibleChanges();
+        arcbosSetText("#rowCount", String(rows.length));
+
+        const q = state.q.trim();
+        arcbosSetText(
+          "#filterHint",
+          `Filter: Type=${state.type || "All"} • Status=${state.status || "All"} • Sort=${state.sort} • Approver="${state.approver.trim() || ""}" • Search="${q || ""}"`
+        );
+
+        arcbosSetText("#tableMeta", `Total changes: ${changes.length} • Visible: ${rows.length}`);
+
+        arcbosRenderTable("#changesTable", columns, rows, {
+          onRowClick: function(c){
+            arcbosOpenDrawer(c.changeId || "Change", changeDetailNode(c));
+          }
+        });
+      }
+
+      function reset() {
+        state.q = "";
+        state.type = "";
+        state.status = "";
+        state.sort = "date_desc";
+        state.approver = "";
+
+        arcbos$("#q").value = "";
+        arcbos$("#type").value = "";
+        arcbos$("#status").value = "";
+        arcbos$("#sort").value = "date_desc";
+        arcbos$("#approver").value = "";
+
+        render();
+      }
+
+      // Events
+      arcbos$("#q").addEventListener("input", function(e){ state.q = e.target.value || ""; render(); });
+      arcbos$("#type").addEventListener("change", function(e){ state.type = e.target.value || ""; render(); });
+      arcbos$("#status").addEventListener("change", function(e){ state.status = e.target.value || ""; render(); });
+      arcbos$("#sort").addEventListener("change", function(e){ state.sort = e.target.value || "date_desc"; render(); });
+      arcbos$("#approver").addEventListener("input", function(e){ state.approver = e.target.value || ""; render(); });
+
+      arcbos$("#btnReset").addEventListener("click", reset);
+
+      arcbos$("#btnExportCsv").addEventListener("click", function(){
+        const rows = visibleChanges();
+        const out = [];
+        out.push(["changeId","type","status","date","title","reason","impact","approver","affectedSkus","notes"]);
+        for (const c of rows) {
+          out.push([
+            c.changeId || "",
+            c.type || "",
+            c.status || "",
+            c.date || "",
+            (c.title || "").replace(/\r?\n/g, " "),
+            (c.reason || "").replace(/\r?\n/g, " "),
+            (c.impact || "").replace(/\r?\n/g, " "),
+            c.approver || "",
+            Array.isArray(c.affectedSkus) ? c.affectedSkus.join("|") : "",
+            (c.notes || "").replace(/\r?\n/g, " ")
+          ]);
+        }
+        const csv = arcbosCsvEncode(out);
+        arcbosDownloadText(csv, "arcbos_changes_view.csv", "text/csv");
+      });
+
+      // Initial
+      reset();
+    })();
+  </script>
+</body>
+</html>
