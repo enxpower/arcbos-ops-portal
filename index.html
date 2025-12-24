@@ -10,10 +10,19 @@
 </head>
 
 <body data-page="dashboard">
+  <!-- ================= Top Bar ================= -->
   <header class="topbar">
     <div class="topbar__inner">
       <div class="brand">
-        <div class="brand__mark" aria-hidden="true">A</div>
+        <!-- Logo -->
+        <img
+          src="./assets/logo.png"
+          alt="ARCBOS logo"
+          class="brand__logo"
+          width="36"
+          height="36"
+        />
+
         <div class="brand__text">
           <div class="brand__title">ARCBOS Ops Portal</div>
           <div class="brand__sub">SnowBot Phase 1 • Audit-first • No backend</div>
@@ -37,20 +46,23 @@
         </div>
         <div class="meta__item">
           <span class="muted">Data</span>
-          <!-- app.js updates #dataStatus -->
           <span id="dataStatus" class="mono">—</span>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- ================= Main ================= -->
   <main class="container">
+    <!-- Hero -->
     <section class="hero">
       <div>
         <h1 class="h1">Operational Truth, Not Slides.</h1>
         <p class="lead">
-          This portal is a lightweight, audit-friendly system for managing BOM trees, parts, suppliers, and engineering changes.
-          Data lives in version-controlled JSON files under <span class="mono">/data</span>.
+          This portal is a lightweight, audit-friendly system for managing BOM trees,
+          parts, suppliers, and engineering changes.
+          Data lives in version-controlled JSON files under
+          <span class="mono">/data</span>.
         </p>
       </div>
 
@@ -60,6 +72,7 @@
       </div>
     </section>
 
+    <!-- KPI Row -->
     <section class="grid grid--3">
       <div class="card">
         <div class="card__head">
@@ -115,6 +128,7 @@
       </div>
     </section>
 
+    <!-- Lists -->
     <section class="grid grid--2">
       <div class="card">
         <div class="card__head">
@@ -137,6 +151,7 @@
       </div>
     </section>
 
+    <!-- Non-goals -->
     <section class="footerNote">
       <div class="callout">
         <div class="callout__title">Non-goals</div>
@@ -148,25 +163,22 @@
     </section>
   </main>
 
+  <!-- ================= Footer ================= -->
   <footer class="footer">
     <div class="container footer__inner">
       <div class="muted small">
         ARCBOS Ops Portal • Static site • Versioned data • Built for long-term maintainability
       </div>
-      <div class="muted small mono" id="buildStamp">Build: static • Data: /data/*.json</div>
+      <div class="muted small mono" id="buildStamp">
+        Build: static • Data: /data/*.json
+      </div>
     </div>
   </footer>
 
-  <!-- Core helpers -->
+  <!-- ================= Scripts ================= -->
   <script src="./js/utils.js"></script>
-
-  <!-- Data loader (must define window.arcbosDataLoadAll) -->
   <script src="./js/data.js"></script>
-
-  <!-- Page renderers (must register window.ARCBOS_PAGES.dashboard) -->
   <script src="./js/dashboard.js"></script>
-
-  <!-- App bootstrap (loads JSON + updates header meta + calls page renderer) -->
   <script src="./js/app.js"></script>
 </body>
 </html>
