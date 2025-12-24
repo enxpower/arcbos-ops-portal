@@ -1,22 +1,18 @@
 /* app.js
- * ARCBOS Ops Portal — minimal loader/router
- * - Robust base path for GitHub Pages repo sites
- * - Graceful if /data/meta.json missing
+ * ARCBOS Ops Portal — robust loader/router for GitHub Pages
+ * Fixes:
+ * - Robust base path for repo pages
+ * - Dataset loader with multiple candidate URLs per dataset
+ * - meta.json optional
  */
 
 (function () {
   'use strict';
 
   function getBasePath() {
-    // Example:
-    // - https://enxpower.github.io/arcbos-ops-portal/pages/dashboard.html
-    // - base should be /arcbos-ops-portal
+    // GitHub Pages repo site: /<repo>/...
     const p = window.location.pathname;
-    // remove trailing file
     const parts = p.split('/').filter(Boolean);
-
-    // If hosted on GitHub Pages repo site, first segment is repo name
-    // e.g. /arcbos-ops-portal/...
     if (parts.length > 0) return '/' + parts[0];
     return '';
   }
@@ -25,76 +21,127 @@
 
   async function fetchJson(url) {
     const res = await fetch(url, { cache: 'no-cache' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status} for ${url}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
     return await res.json();
   }
 
+  async function firstOkJson(urls) {
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        return { ok: true, url, json: await fetchJson(url) };
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    return { ok: false, url: urls[urls.length - 1], json: null, err: lastErr };
+  }
+
   function setHeaderStatus(lastUpdated, dataStatus) {
-    // These IDs should exist in your header. If not, adjust here.
     const lu = document.getElementById('lastUpdated');
     const ds = document.getElementById('dataStatus');
-
     if (lu) lu.textContent = lastUpdated || '—';
     if (ds) ds.textContent = dataStatus || '—';
   }
 
-  async function loadAll() {
-    // Load datasets. Adjust if your filenames differ.
-    // Keep them independent: one missing file shouldn't kill the whole dashboard.
-    const data = {};
+  function normalizeBaseCandidates(rel) {
+    // Accept either absolute (/repo/data/...) or relative (/data/...) conventions
+    // We prefer BASE first.
+    const withBase = `${BASE}${rel}`;
+    const withoutBase = rel; // if site deployed at root
+    // de-dup
+    return Array.from(new Set([withBase, withoutBase]));
+  }
 
-    const targets = [
-      { key: 'bom', url: `${BASE}/data/bom.json` },
-      { key: 'parts', url: `${BASE}/data/parts.json` },
-      { key: 'suppliers', url: `${BASE}/data/suppliers.json` },
-      { key: 'changes', url: `${BASE}/data/changes.json` }
+  async function loadMeta() {
+    const candidates = normalizeBaseCandidates('/data/meta.json');
+    const r = await firstOkJson(candidates);
+    if (!r.ok) return null;
+    return r.json;
+  }
+
+  async function loadAll() {
+    // IMPORTANT: these are *candidate* filenames/paths (your repo may differ)
+    const datasets = [
+      {
+        key: 'bom',
+        candidates: [
+          ...normalizeBaseCandidates('/data/bom.json'),
+          ...normalizeBaseCandidates('/data/bom_tree.json'),
+          ...normalizeBaseCandidates('/data/bomTree.json'),
+          ...normalizeBaseCandidates('/data/bom.nodes.json'),
+          ...normalizeBaseCandidates('/data/bom/index.json')
+        ]
+      },
+      {
+        key: 'parts',
+        candidates: [
+          ...normalizeBaseCandidates('/data/parts.json'),
+          ...normalizeBaseCandidates('/data/part.json'),
+          ...normalizeBaseCandidates('/data/parts/index.json'),
+          ...normalizeBaseCandidates('/data/part_list.json')
+        ]
+      },
+      {
+        key: 'suppliers',
+        candidates: [
+          ...normalizeBaseCandidates('/data/suppliers.json'),
+          ...normalizeBaseCandidates('/data/supplier.json'),
+          ...normalizeBaseCandidates('/data/suppliers/index.json'),
+          ...normalizeBaseCandidates('/data/supplier_list.json'),
+          ...normalizeBaseCandidates('/data/vendors.json')
+        ]
+      },
+      {
+        key: 'changes',
+        candidates: [
+          ...normalizeBaseCandidates('/data/changes.json'),
+          ...normalizeBaseCandidates('/data/change.json'),
+          ...normalizeBaseCandidates('/data/changes/index.json'),
+          ...normalizeBaseCandidates('/data/change_log.json'),
+          ...normalizeBaseCandidates('/data/ecr_eco.json')
+        ]
+      }
     ];
 
-    for (const t of targets) {
-      try {
-        data[t.key] = await fetchJson(t.url);
-      } catch (e) {
-        console.warn('[ARCBOS] Data load warning:', t.key, e.message);
-        // fallback to safe shapes
-        data[t.key] = (t.key === 'bom') ? {} : [];
+    const data = {};
+    const loadReport = [];
+
+    for (const ds of datasets) {
+      const r = await firstOkJson(ds.candidates);
+      if (r.ok) {
+        data[ds.key] = r.json;
+        loadReport.push(`${ds.key}: OK (${r.url.replace(BASE, '') || r.url})`);
+      } else {
+        // Non-blocking: keep sane default
+        data[ds.key] = (ds.key === 'bom') ? {} : [];
+        loadReport.push(`${ds.key}: MISS`);
+        console.warn('[ARCBOS] Dataset load failed:', ds.key, r.err ? r.err.message : '');
       }
     }
 
-    // Normalize bom if it contains nodes under a property
-    // If your bom.json is already an object with nodes, leave as is.
-    if (Array.isArray(data.bom)) {
-      data.bom = { nodes: data.bom };
-    }
-
-    // meta.json is optional
+    // meta optional
     let lastUpdated = '—';
     let dataStatus = 'ok';
-
-    try {
-      const meta = await fetchJson(`${BASE}/data/meta.json`);
-      if (meta && typeof meta === 'object') {
-        lastUpdated = meta.lastUpdated || meta.updated || meta.date || lastUpdated;
-        dataStatus = meta.status || dataStatus;
-      }
-    } catch (e) {
-      // Not fatal — your site can run without meta.json
-      console.warn('[ARCBOS] meta.json missing (non-blocking):', e.message);
-      // Provide a reasonable fallback: build date from document
-      const build = document.querySelector('meta[name="build-date"]')?.getAttribute('content');
-      if (build) lastUpdated = build;
+    const meta = await loadMeta();
+    if (meta && typeof meta === 'object') {
+      lastUpdated = meta.lastUpdated || meta.updated || meta.date || lastUpdated;
+      dataStatus = meta.status || dataStatus;
     }
 
+    // show something even without meta
     setHeaderStatus(lastUpdated, dataStatus);
 
-    // Expose to renderers
+    // expose
     window.arcbosData = data;
+
+    // concise loader report for debugging (no noise)
+    console.log('[ARCBOS] data load:', loadReport.join(' | '));
+
     return data;
   }
 
   function getPageName() {
-    // You can set <body data-page="dashboard"> or derive from path.
     const bodyPage = document.body && document.body.getAttribute('data-page');
     if (bodyPage) return bodyPage;
 
@@ -112,33 +159,34 @@
   function callRenderer(page) {
     window.ARCBOS = window.ARCBOS || {};
 
-    // For your current issue: dashboard renderer
-    if (page === 'dashboard' && typeof window.ARCBOS.renderDashboard === 'function') {
-      window.ARCBOS.renderDashboard();
+    const map = {
+      dashboard: 'renderDashboard',
+      bom: 'renderBom',
+      parts: 'renderParts',
+      suppliers: 'renderSuppliers',
+      changes: 'renderChanges',
+      rules: 'renderRules',
+      templates: 'renderTemplates'
+    };
+
+    const fn = map[page] || 'renderDashboard';
+    if (typeof window.ARCBOS[fn] === 'function') {
+      window.ARCBOS[fn]();
       return;
     }
 
-    // fallback: if you have other renderers, call them
-    const key = 'render' + page.charAt(0).toUpperCase() + page.slice(1);
-    if (typeof window.ARCBOS[key] === 'function') {
-      window.ARCBOS[key]();
-      return;
-    }
-
-    console.warn('[ARCBOS] No renderer found for page:', page);
+    console.warn('[ARCBOS] No renderer found for page:', page, '(expected', fn, ')');
   }
 
   async function init() {
     try {
       await loadAll();
     } catch (e) {
-      console.error('[ARCBOS] Data load failed:', e);
+      console.error('[ARCBOS] init/loadAll failed:', e);
       setHeaderStatus('—', 'fetch failed');
-      // still try to render; renderers will handle missing data
     }
 
-    const page = getPageName();
-    callRenderer(page);
+    callRenderer(getPageName());
   }
 
   document.addEventListener('DOMContentLoaded', init);
