@@ -1,19 +1,15 @@
-
----
-
-
-```json
 {
   "meta": {
     "lastUpdated": "2025-12-20",
     "version": "1.0",
-    "owner": "ARCBOS Ops"
+    "owner": "ARCBOS Ops",
+    "buildStamp": "static"
   },
   "sku": {
     "format": "SB{platform}-{layer}-{seq}",
     "layers": [
       { "id": "PLT", "name": "Platform", "prefix": "SB{platform}-PLT" },
-      { "id": "SS",  "name": "Subsystem", "prefix": "SB{platform}-SS" },
+      { "id": "SS", "name": "Subsystem", "prefix": "SB{platform}-SS" },
       { "id": "ASM", "name": "Assembly", "prefix": "SB{platform}-ASM" },
       { "id": "PRT", "name": "Part", "prefix": "SB{platform}-PRT" },
       { "id": "CNS", "name": "Consumable", "prefix": "SB{platform}-CNS" },
@@ -42,7 +38,7 @@
       "cost": 0.12,
       "engineeringSupport": 0.16,
       "compliance": 0.18,
-      "risk": 0.10
+      "risk": 0.1
     }
   },
   "criticality": {
@@ -53,10 +49,44 @@
   },
   "validation": {
     "required": {
-      "bom.nodes": ["nodeId", "parentNodeId", "subsystem", "sku", "qty", "unit", "revision", "criticality"],
-      "parts.parts": ["sku", "name", "type", "revision", "status", "owner", "date", "criticality"],
-      "suppliers.suppliers": ["supplierId", "name", "region", "status", "scores"],
-      "changes.changes": ["changeId", "type", "title", "reason", "impact", "affectedSkus", "status", "date"]
+      "bom.nodes": [
+        "nodeId",
+        "parentNodeId",
+        "subsystem",
+        "sku",
+        "qty",
+        "unit",
+        "revision",
+        "criticality",
+        "suppliers"
+      ],
+      "parts.parts": [
+        "sku",
+        "name",
+        "type",
+        "revision",
+        "status",
+        "owner",
+        "date",
+        "criticality"
+      ],
+      "suppliers.suppliers": [
+        "supplierId",
+        "name",
+        "region",
+        "status",
+        "scores"
+      ],
+      "changes.changes": [
+        "changeId",
+        "type",
+        "title",
+        "reason",
+        "impact",
+        "affectedSkus",
+        "status",
+        "date"
+      ]
     },
     "checks": {
       "uniqueIds": "Ensure nodeId / sku / supplierId / changeId are unique. IDs must remain stable.",
