@@ -2,8 +2,7 @@
   "meta": {
     "lastUpdated": "2025-12-20",
     "version": "1.0",
-    "owner": "ARCBOS Ops",
-    "buildStamp": "static"
+    "owner": "ARCBOS Ops"
   },
   "sku": {
     "format": "SB{platform}-{layer}-{seq}",
@@ -57,8 +56,7 @@
         "qty",
         "unit",
         "revision",
-        "criticality",
-        "suppliers"
+        "criticality"
       ],
       "parts.parts": [
         "sku",
@@ -89,8 +87,8 @@
       ]
     },
     "checks": {
-      "uniqueIds": "Ensure nodeId / sku / supplierId / changeId are unique. IDs must remain stable.",
-      "bomHasRoot": "At least one BOM node must have empty parentNodeId as the root.",
+      "uniqueIds": "Ensure nodeId / sku / supplierId / changeId are unique.",
+      "bomHasRoot": "At least one BOM node must have empty parentNodeId.",
       "statusAllowed": "Parts status must be in rules.status.allowed."
     }
   }
