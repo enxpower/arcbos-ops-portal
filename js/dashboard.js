@@ -1,230 +1,250 @@
 // js/dashboard.js
-// Robust, data-waiting dashboard renderer for ARCBOS Ops Portal
 (function () {
-  const LOG = '[dashboard]';
+  const TAG = '[dashboard]';
 
-  // ----- tiny DOM helpers -----
-  const $id = (id) => document.getElementById(id);
-
-  const setText = (id, value) => {
-    const el = $id(id);
-    if (!el) return;
-    el.textContent = value;
-  };
-
-  const setHTML = (id, html) => {
-    const el = $id(id);
-    if (!el) return;
-    el.innerHTML = html;
-  };
-
-  // ----- normalize helpers -----
-  const asArray = (v) => {
-    if (Array.isArray(v)) return v;
-    if (!v) return [];
-    if (Array.isArray(v.items)) return v.items;
-    if (Array.isArray(v.changes)) return v.changes;
-    if (Array.isArray(v.rows)) return v.rows;
-    if (Array.isArray(v.parts)) return v.parts;
-    if (Array.isArray(v.suppliers)) return v.suppliers;
-    if (Array.isArray(v.nodes)) return v.nodes;
-    return [];
-  };
-
-  const safeDate = (s) => {
-    if (!s) return null;
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  };
-
-  // ----- renderers -----
-  function renderDashboard(arcbosData) {
-    const data = arcbosData || {};
-
-    // IMPORTANT:
-    // Your arcbosData might be either:
-    // - { changes: [...] } or { changes: { items: [...] } } etc.
-    // - or { datasets: { changes: ... } }
-    // We accept either.
-    const changesRaw = data.changes ?? data.datasets?.changes ?? data.data?.changes;
-    const partsRaw = data.parts ?? data.datasets?.parts ?? data.data?.parts;
-    const suppliersRaw = data.suppliers ?? data.datasets?.suppliers ?? data.data?.suppliers;
-    const bomRaw = data.bom ?? data.datasets?.bom ?? data.data?.bom;
-
-    const changes = asArray(changesRaw);
-    const parts = asArray(partsRaw);
-    const suppliers = asArray(suppliersRaw);
-    const bom = asArray(bomRaw);
-
-    // ---- This week (7d) ----
-    (function renderThisWeek() {
-      const now = new Date();
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-
-      const recent = changes.filter((c) => {
-        const d = safeDate(c.date || c.createdAt || c.updatedAt);
-        if (!d) return false;
-        return now.getTime() - d.getTime() <= sevenDays;
-      });
-
-      const ecoApproved = recent.filter((c) => (c.type || '').toUpperCase() === 'ECO' && (c.status || '').toLowerCase() === 'approved');
-      const openEcr = changes.filter((c) => (c.type || '').toUpperCase() === 'ECR' && (c.status || '').toLowerCase() !== 'closed');
-
-      setText('kpiNewChanges', recent.length);
-      setText('kpiEcoApproved', ecoApproved.length);
-      setText('kpiOpenEcr', openEcr.length);
-
-      // optional pill
-      setText('pillWeek', '7d');
-    })();
-
-    // ---- BOM health ----
-    (function renderBomHealth() {
-      setText('kpiBomNodes', bom.length);
-
-      const highCrit = bom.filter((n) => (n.criticality || '').toLowerCase() === 'critical');
-      setText('kpiHighCrit', highCrit.length);
-
-      const missingSup = bom.filter((n) => {
-        const s = n.suppliers ?? n.supplierIds ?? n.supplier ?? [];
-        const arr = asArray(s);
-        return arr.length === 0;
-      });
-      setText('kpiMissingSuppliers', missingSup.length);
-
-      setText('badgeBomHealth', missingSup.length === 0 ? 'OK' : 'Attention');
-      setText('bomHealthHint', missingSup.length === 0 ? 'All nodes have suppliers' : `${missingSup.length} node(s) missing suppliers`);
-    })();
-
-    // ---- Top suppliers ----
-    (function renderTopSuppliers() {
-      const el = $id('topSuppliers');
-      if (!el) return;
-
-      el.innerHTML = '';
-
-      if (!suppliers.length) {
-        el.textContent = 'No supplier data';
-        return;
-      }
-
-      // Sort: higher score first (if score exists)
-      const sorted = [...suppliers].sort((a, b) => {
-        const sa = Number(a.score ?? a.weightedScore ?? a.totalScore ?? 0);
-        const sb = Number(b.score ?? b.weightedScore ?? b.totalScore ?? 0);
-        return sb - sa;
-      });
-
-      sorted.slice(0, 5).forEach((s) => {
-        const name = s.name || s.supplierName || s.id || s.supplierId || 'Supplier';
-        const id = s.id || s.supplierId || '';
-        const score = s.score ?? s.weightedScore ?? s.totalScore ?? '—';
-
-        const row = document.createElement('div');
-        row.className = 'list__row';
-        row.textContent = `${name}${id ? ` (${id})` : ''} — score ${score}`;
-        el.appendChild(row);
-      });
-    })();
-
-    // ---- Key risks ----
-    (function renderKeyRisks() {
-      const el = $id('keyRisks');
-      if (!el) return;
-
-      el.innerHTML = '';
-
-      // interpret risk tags flexibly
-      const risky = parts.filter((p) => {
-        const r = (p.risk || p.riskTag || p.riskLevel || '').toString().toLowerCase();
-        return r === 'high' || r === 'critical' || r.includes('lead-time') || r.includes('single-source');
-      });
-
-      if (!risky.length) {
-        el.textContent = 'No high risks detected';
-        return;
-      }
-
-      risky.slice(0, 6).forEach((p) => {
-        const sku = p.sku || p.partSku || p.id || '—';
-        const r = p.risk || p.riskTag || p.riskLevel || 'Risk';
-        const row = document.createElement('div');
-        row.className = 'list__row';
-        row.textContent = `${sku} — ${r}`;
-        el.appendChild(row);
-      });
-    })();
-
-    // ---- Recent changes ----
-    (function renderRecentChanges() {
-      const el = $id('recentChanges');
-      if (!el) return;
-
-      el.innerHTML = '';
-
-      if (!changes.length) {
-        el.textContent = 'No changes';
-        return;
-      }
-
-      // Sort by date desc if possible
-      const sorted = [...changes].sort((a, b) => {
-        const da = safeDate(a.date || a.createdAt || a.updatedAt);
-        const db = safeDate(b.date || b.createdAt || b.updatedAt);
-        const ta = da ? da.getTime() : 0;
-        const tb = db ? db.getTime() : 0;
-        return tb - ta;
-      });
-
-      sorted.slice(0, 5).forEach((c) => {
-        const id = c.changeId || c.id || '';
-        const type = (c.type || '').toUpperCase();
-        const status = c.status || '';
-        const title = c.title || c.summary || '';
-        const row = document.createElement('div');
-        row.className = 'list__row';
-        row.textContent = `${id ? id + ' · ' : ''}${type ? type + ' · ' : ''}${status}${title ? ` — ${title}` : ''}`;
-        el.appendChild(row);
-      });
-    })();
-
-    console.log(LOG, 'render OK');
+  function $(id) {
+    return document.getElementById(id);
   }
 
-  // ----- wait for data once, then render -----
-  function waitForArcbosDataAndRender() {
-    const MAX_MS = 8000;     // 8s timeout (GitHub Pages JSON fetch can be slow first time)
-    const STEP_MS = 120;     // poll interval
-    const started = Date.now();
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
-    const tick = () => {
-      // arcbosData might be set by app.js after it fetches /data/*.json
-      const ready = window.arcbosData && (window.arcbosData.changes || window.arcbosData.datasets || window.arcbosData.data);
+  function computeThisWeek(changes) {
+    // If your changes.json already has recent items, we can compute
+    // a simple summary. If not, show dashes gracefully.
+    const out = { newChanges: 0, ecoApproved: 0, openEcr: 0 };
 
-      if (ready) {
-        renderDashboard(window.arcbosData);
-        return;
+    const list = (changes && (changes.changes || changes.items || changes)) || [];
+    if (!Array.isArray(list)) return out;
+
+    // Treat "Implemented" as ECO implemented; "Approved" as ECR approved
+    for (const c of list) {
+      const type = (c.type || '').toUpperCase();
+      const status = (c.status || '').toLowerCase();
+      if (type === 'ECO') out.newChanges += 1;
+      if (type === 'ECO' && status.includes('implemented')) out.ecoApproved += 1;
+      if (type === 'ECR' && status.includes('open')) out.openEcr += 1;
+    }
+    return out;
+  }
+
+  function computeBomHealth(bom) {
+    // bom.json schema may be {nodes:[...]} or {bom:{nodes:[...]}} etc.
+    const nodes =
+      (bom && (bom.nodes || (bom.bom && bom.bom.nodes) || bom.items || bom)) || [];
+    const arr = Array.isArray(nodes) ? nodes : [];
+    const nodeCount = arr.length;
+
+    let highCriticality = 0;
+    let missingSuppliers = 0;
+
+    for (const n of arr) {
+      const crit = String(n.criticality || n.crit || '').toLowerCase();
+      if (crit === 'critical' || crit === 'high') highCriticality += 1;
+
+      const sup = n.suppliers ?? n.supplierIds ?? n.supplierId ?? n.supplier;
+      const hasSupplier =
+        (Array.isArray(sup) && sup.length > 0) ||
+        (typeof sup === 'string' && sup.trim() !== '') ||
+        (typeof sup === 'number');
+      if (!hasSupplier) missingSuppliers += 1;
+    }
+
+    return { nodeCount, highCriticality, missingSuppliers };
+  }
+
+  function scoreSupplier(s, rules) {
+    // If suppliers already contain "score", use it. Else compute weighted score if possible.
+    if (typeof s.score === 'number') return s.score;
+
+    const weights = rules && rules.supplierScoring && rules.supplierScoring.weights;
+    const range = rules && rules.supplierScoring && rules.supplierScoring.range;
+
+    const scores = s.scores || {};
+    if (!weights || !scores) return null;
+
+    let total = 0;
+    let hasAny = false;
+    for (const [k, w] of Object.entries(weights)) {
+      const v = scores[k];
+      if (typeof v === 'number') {
+        total += v * w;
+        hasAny = true;
       }
+    }
+    if (!hasAny) return null;
 
-      if (Date.now() - started > MAX_MS) {
-        console.warn(LOG, 'arcbosData not ready after timeout. Check /data/*.json fetch or app.js load order.');
-        // Keep page graceful: replace Loading... with friendly placeholders if elements exist
-        setText('topSuppliers', 'No data (check /data)');
-        setText('keyRisks', 'No data (check /data)');
-        setText('recentChanges', 'No data (check /data)');
-        return;
+    // Normalize if a range is provided (e.g. 1-5)
+    // Here we keep it as-is; UI just prints number.
+    return total;
+  }
+
+  function pickTopSuppliers(suppliers, rules, limit = 5) {
+    const list =
+      (suppliers && (suppliers.suppliers || suppliers.items || suppliers)) || [];
+    if (!Array.isArray(list)) return [];
+
+    const scored = list.map((s) => ({
+      s,
+      score: scoreSupplier(s, rules),
+    }));
+
+    scored.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+    return scored.slice(0, limit);
+  }
+
+  function computeKeyRisks(suppliers, parts, rules) {
+    // Keep simple and deterministic:
+    // - If rules define risk tags, count occurrences from suppliers + parts.
+    const riskSet = new Map();
+
+    const addTags = (tags) => {
+      if (!tags) return;
+      const arr = Array.isArray(tags) ? tags : [tags];
+      for (const t of arr) {
+        const key = String(t || '').trim();
+        if (!key) continue;
+        riskSet.set(key, (riskSet.get(key) || 0) + 1);
       }
-
-      setTimeout(tick, STEP_MS);
     };
 
-    tick();
+    const supList =
+      (suppliers && (suppliers.suppliers || suppliers.items || suppliers)) || [];
+    if (Array.isArray(supList)) {
+      for (const s of supList) addTags(s.risks || s.riskTags || s.tags);
+    }
+
+    const partList = (parts && (parts.parts || parts.items || parts)) || [];
+    if (Array.isArray(partList)) {
+      for (const p of partList) addTags(p.risks || p.riskTags || p.tags);
+    }
+
+    const out = Array.from(riskSet.entries()).map(([tag, count]) => ({
+      tag,
+      count,
+    }));
+    out.sort((a, b) => b.count - a.count);
+    return out.slice(0, 6);
   }
 
-  // Run after DOM is ready (but still wait for data)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', waitForArcbosDataAndRender);
+  function pickRecentChanges(changes, limit = 6) {
+    const list = (changes && (changes.changes || changes.items || changes)) || [];
+    if (!Array.isArray(list)) return [];
+
+    // Prefer date desc
+    const arr = [...list].sort((a, b) => {
+      const da = String(a.date || '');
+      const db = String(b.date || '');
+      return db.localeCompare(da);
+    });
+
+    return arr.slice(0, limit);
+  }
+
+  function renderDashboard(data) {
+    const { bom, parts, suppliers, changes, rules, meta } = data || {};
+
+    // Fill top-left "This week"
+    const w = computeThisWeek(changes);
+    if ($('kpiNewChanges')) $('kpiNewChanges').textContent = String(w.newChanges);
+    if ($('kpiEcoApproved')) $('kpiEcoApproved').textContent = String(w.ecoApproved);
+    if ($('kpiOpenEcr')) $('kpiOpenEcr').textContent = String(w.openEcr);
+
+    // Fill BOM health
+    const h = computeBomHealth(bom);
+    if ($('kpiNodes')) $('kpiNodes').textContent = String(h.nodeCount);
+    if ($('kpiHighCrit')) $('kpiHighCrit').textContent = String(h.highCriticality);
+    if ($('kpiMissingSuppliers')) $('kpiMissingSuppliers').textContent = String(h.missingSuppliers);
+    if ($('bomHealthNote')) {
+      $('bomHealthNote').textContent =
+        h.missingSuppliers > 0 ? `${h.missingSuppliers} node(s) missing suppliers` : '—';
+    }
+
+    // Top suppliers
+    const top = pickTopSuppliers(suppliers, rules, 5);
+    const topEl = $('topSuppliersList');
+    if (topEl) {
+      if (top.length === 0) {
+        topEl.innerHTML = '<div class="muted">No suppliers loaded</div>';
+      } else {
+        topEl.innerHTML = top
+          .map(({ s, score }) => {
+            const id = esc(s.supplierId || s.id || '—');
+            const name = esc(s.name || '—');
+            const sc = score == null ? '—' : Number(score).toFixed(1);
+            return `<div class="listRow"><div class="rowTitle">${name} (${id})</div><div class="rowMeta">score ${sc}</div></div>`;
+          })
+          .join('');
+      }
+    }
+
+    // Key risks
+    const risks = computeKeyRisks(suppliers, parts, rules);
+    const risksEl = $('keyRisksList');
+    if (risksEl) {
+      if (risks.length === 0) {
+        risksEl.textContent = 'No high risks detected';
+      } else {
+        risksEl.innerHTML = risks
+          .map((r) => `<div class="chipRow"><div class="chipTitle">${esc(r.tag)}</div><div class="chipMeta">Occurrences: ${r.count}</div></div>`)
+          .join('');
+      }
+    }
+
+    // Recent changes
+    const recent = pickRecentChanges(changes, 6);
+    const recentEl = $('recentChangesList');
+    if (recentEl) {
+      if (recent.length === 0) {
+        recentEl.innerHTML = '<div class="muted">No changes loaded</div>';
+      } else {
+        recentEl.innerHTML = recent
+          .map((c) => {
+            const id = esc(c.changeId || c.id || '—');
+            const type = esc(c.type || '—');
+            const status = esc(c.status || '—');
+            const title = esc(c.title || '');
+            const date = esc(c.date || '');
+            return `<div class="listRow"><div class="rowTitle">${id} • ${type} • ${status} — ${title}</div><div class="rowMeta">${date}</div></div>`;
+          })
+          .join('');
+      }
+    }
+
+    // Meta: last updated on page header if present
+    // (app.js should also set it globally; this is extra resilience)
+    if (meta && meta.lastUpdated && $('lastUpdated')) {
+      $('lastUpdated').textContent = String(meta.lastUpdated);
+    }
+
+    console.log(TAG, 'render OK');
+  }
+
+  // Professional: register renderer for app.js router
+  window.renderDashboard = renderDashboard;
+
+  // Support both timing orders:
+  // 1) app.js loads data, then calls renderer
+  // 2) dashboard.js loaded after data already present
+  if (window.arcbosData) {
+    try {
+      renderDashboard(window.arcbosData);
+    } catch (e) {
+      console.error(TAG, 'render failed:', e);
+    }
   } else {
-    waitForArcbosDataAndRender();
+    window.addEventListener('arcbos:dataReady', (ev) => {
+      try {
+        renderDashboard(ev.detail.arcbosData);
+      } catch (e) {
+        console.error(TAG, 'render failed:', e);
+      }
+    });
   }
 })();
