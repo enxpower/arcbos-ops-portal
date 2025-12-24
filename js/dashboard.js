@@ -1,162 +1,143 @@
-/* =========================================================
- * ARCBOS Ops Portal — Dashboard Renderer
- * Page: index.html
- * Depends on:
- *   - utils.js
- *   - data.js (arcbosDataLoadAll)
- *   - app.js (header meta already handled)
- * ========================================================= */
+// dashboard.js
+// Safe, defensive dashboard renderer for ARCBOS Ops Portal
 
 (function () {
-  "use strict";
-
-  if (!window.arcbosDataLoadAll) {
-    console.warn("[ARCBOS] arcbosDataLoadAll not found.");
+  if (!window.arcbosData) {
+    console.warn('[dashboard] arcbosData not ready');
     return;
   }
 
-  document.addEventListener("DOMContentLoaded", initDashboard);
+  const data = window.arcbosData;
 
-  async function initDashboard() {
-    let state;
-    try {
-      state = await window.arcbosDataLoadAll();
-    } catch (err) {
-      console.error("[ARCBOS] Dashboard load failed:", err);
+  // ---------- helpers ----------
+  const asArray = (v) => {
+    if (Array.isArray(v)) return v;
+    if (!v) return [];
+    if (Array.isArray(v.items)) return v.items;
+    if (Array.isArray(v.changes)) return v.changes;
+    if (Array.isArray(v.rows)) return v.rows;
+    return [];
+  };
+
+  const byId = (id) => document.getElementById(id);
+
+  // ---------- extract datasets safely ----------
+  const changes = asArray(data.changes);
+  const parts = asArray(data.parts);
+  const suppliers = asArray(data.suppliers);
+  const bom = asArray(data.bom);
+
+  // ---------- This week ----------
+  function renderThisWeek() {
+    const now = new Date();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+    const recent = changes.filter(c => {
+      if (!c.date) return false;
+      return now - new Date(c.date) <= sevenDays;
+    });
+
+    const ecoApproved = recent.filter(c => c.type === 'ECO' && c.status === 'approved');
+    const openEcr = changes.filter(c => c.type === 'ECR' && c.status !== 'closed');
+
+    byId('kpiNewChanges').textContent = recent.length;
+    byId('kpiEcoApproved').textContent = ecoApproved.length;
+    byId('kpiOpenEcr').textContent = openEcr.length;
+    byId('pillWeek').textContent = '7d';
+  }
+
+  // ---------- BOM health ----------
+  function renderBomHealth() {
+    byId('kpiBomNodes').textContent = bom.length;
+
+    const highCrit = bom.filter(n => n.criticality === 'Critical');
+    byId('kpiHighCrit').textContent = highCrit.length;
+
+    const missingSup = bom.filter(n => !n.suppliers || n.suppliers.length === 0);
+    byId('kpiMissingSuppliers').textContent = missingSup.length;
+
+    byId('badgeBomHealth').textContent =
+      missingSup.length === 0 ? 'OK' : 'Attention';
+
+    byId('bomHealthHint').textContent =
+      missingSup.length === 0
+        ? 'All nodes have suppliers'
+        : `${missingSup.length} node(s) missing suppliers`;
+  }
+
+  // ---------- Top suppliers ----------
+  function renderTopSuppliers() {
+    const el = byId('topSuppliers');
+    el.innerHTML = '';
+
+    if (!suppliers.length) {
+      el.textContent = 'No supplier data';
       return;
     }
 
-    renderThisWeek(state);
-    renderBomHealth(state);
-    renderTopSuppliers(state);
-    renderKeyRisks(state);
-    renderRecentChanges(state);
+    suppliers
+      .slice(0, 5)
+      .forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'list__row';
+        row.textContent = `${s.name || s.id || 'Supplier'} — score ${s.score ?? '—'}`;
+        el.appendChild(row);
+      });
   }
 
-  /* =========================
-   * This Week KPIs
-   * ========================= */
-  function renderThisWeek(state) {
-    const changes = state.changes || [];
-    const lastUpdated = arcbosSafeDate(state.meta?.lastUpdated) || new Date();
-    const since = new Date(lastUpdated.getTime() - 7 * 24 * 60 * 60 * 1000);
+  // ---------- Key risks ----------
+  function renderKeyRisks() {
+    const el = byId('keyRisks');
+    el.innerHTML = '';
 
-    const recent = changes.filter(c => {
-      const d = arcbosSafeDate(c.date);
-      return d && d >= since;
-    });
+    const riskyParts = parts.filter(p => p.risk === 'High');
 
-    const newChanges = recent.length;
-    const ecoApproved = recent.filter(c => c.type === "ECO" && c.status === "Implemented").length;
-    const openEcr = changes.filter(c => c.type === "ECR" && c.status !== "Closed").length;
-
-    arcbosSetText("#kpiNewChanges", newChanges);
-    arcbosSetText("#kpiEcoApproved", ecoApproved);
-    arcbosSetText("#kpiOpenEcr", openEcr);
-    arcbosSetText("#pillWeek", "Last 7 days");
-  }
-
-  /* =========================
-   * BOM Health
-   * ========================= */
-  function renderBomHealth(state) {
-    const nodes = state.bom?.nodes || [];
-
-    const total = nodes.length;
-    const highCrit = nodes.filter(n =>
-      String(n.criticality).toLowerCase() === "high" ||
-      String(n.criticality).toLowerCase() === "critical"
-    ).length;
-    const missingSup = nodes.filter(n =>
-      !Array.isArray(n.suppliers) || n.suppliers.length === 0
-    ).length;
-
-    arcbosSetText("#kpiBomNodes", total);
-    arcbosSetText("#kpiHighCrit", highCrit);
-    arcbosSetText("#kpiMissingSuppliers", missingSup);
-
-    let label = "Good";
-    let hint = "No structural issues detected.";
-
-    if (missingSup > 0 || highCrit > total * 0.3) {
-      label = "Attention";
-      hint = "Some nodes have no supplier assigned. Close gaps before Beta builds.";
+    if (!riskyParts.length) {
+      el.textContent = 'No high risks detected';
+      return;
     }
 
-    arcbosSetText("#badgeBomHealth", label);
-    arcbosSetText("#bomHealthHint", hint);
-  }
-
-  /* =========================
-   * Top Suppliers
-   * ========================= */
-  function renderTopSuppliers(state) {
-    const suppliers = state.suppliers || [];
-    const weights = state.rules?.supplierScoring?.weights || {};
-
-    const ranked = suppliers
-      .map(s => {
-        const score = arcbosWeightedSupplierScore(s.scores || {}, weights);
-        return { ...s, _score: score };
-      })
-      .sort((a, b) => b._score - a._score)
-      .slice(0, 5);
-
-    const items = ranked.map(s => ({
-      title: `${s.name} (${s.supplierId})`,
-      meta: `Score: ${arcbosFmt1(s._score)} • Region: ${s.region || "—"} • Tags: ${(s.riskTags || []).join(", ") || "—"}`
-    }));
-
-    arcbosRenderList("#topSuppliers", items);
-  }
-
-  /* =========================
-   * Key Risks
-   * ========================= */
-  function renderKeyRisks(state) {
-    const risks = [];
-
-    (state.suppliers || []).forEach(s => {
-      (s.riskTags || []).forEach(tag => {
-        risks.push(tag);
-      });
+    riskyParts.slice(0, 5).forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'list__row';
+      row.textContent = `${p.sku || p.id} — High risk`;
+      el.appendChild(row);
     });
+  }
 
-    (state.parts || []).forEach(p => {
-      (p.riskTags || []).forEach(tag => {
-        risks.push(tag);
+  // ---------- Recent changes ----------
+  function renderRecentChanges() {
+    const el = byId('recentChanges');
+    el.innerHTML = '';
+
+    if (!changes.length) {
+      el.textContent = 'No changes';
+      return;
+    }
+
+    changes
+      .slice(0, 5)
+      .forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'list__row';
+        row.textContent = `${c.id || ''} ${c.type || ''} — ${c.status || ''}`;
+        el.appendChild(row);
       });
-    });
-
-    const grouped = arcbosCountBy(risks, r => r || "Unspecified");
-
-    const top = Object.entries(grouped)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([tag, count]) => ({
-        title: tag,
-        meta: `Occurrences: ${count}`
-      }));
-
-    arcbosRenderList("#keyRisks", top);
   }
 
-  /* =========================
-   * Recent Changes
-   * ========================= */
-  function renderRecentChanges(state) {
-    const changes = (state.changes || [])
-      .map(c => ({ ...c, _d: arcbosSafeDate(c.date) }))
-      .filter(c => c._d)
-      .sort((a, b) => b._d - a._d)
-      .slice(0, 6);
-
-    const items = changes.map(c => ({
-      title: `${c.changeId} • ${c.type} • ${c.title}`,
-      meta: `Status: ${c.status} • Date: ${c.date} • Approver: ${c.approver || "—"}`
-    }));
-
-    arcbosRenderList("#recentChanges", items);
+  // ---------- init ----------
+  function initDashboard() {
+    try {
+      renderThisWeek();
+      renderBomHealth();
+      renderTopSuppliers();
+      renderKeyRisks();
+      renderRecentChanges();
+      console.log('[dashboard] render OK');
+    } catch (e) {
+      console.error('[dashboard] render failed', e);
+    }
   }
 
+  document.addEventListener('DOMContentLoaded', initDashboard);
 })();
