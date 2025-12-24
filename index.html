@@ -37,7 +37,8 @@
         </div>
         <div class="meta__item">
           <span class="muted">Data</span>
-          <span id="dataMode" class="mono">—</span>
+          <!-- app.js updates #dataStatus -->
+          <span id="dataStatus" class="mono">—</span>
         </div>
       </div>
     </div>
@@ -152,145 +153,15 @@
       <div class="muted small">
         ARCBOS Ops Portal • Static site • Versioned data • Built for long-term maintainability
       </div>
-      <div class="muted small mono" id="buildStamp">—</div>
+      <div class="muted small mono" id="buildStamp">Build: static • Data: /data/*.json</div>
     </div>
   </footer>
 
+  <!-- Core helpers -->
   <script src="./js/utils.js"></script>
-  <script>
-    // Dashboard bootstrap (kept tiny here; full logic will move to js/dashboard.js later).
-    (async function boot() {
-      const state = {
-        mode: "unknown",
-        rules: null,
-        bom: null,
-        parts: null,
-        suppliers: null,
-        changes: null
-      };
-
-      try {
-        // Try fetch-based loading first (GitHub Pages works). File:// may fail in some browsers.
-        const [rules, bom, parts, suppliers, changes] = await Promise.all([
-          arcbosLoadJson("./data/rules.json"),
-          arcbosLoadJson("./data/bom.json"),
-          arcbosLoadJson("./data/parts.json"),
-          arcbosLoadJson("./data/suppliers.json"),
-          arcbosLoadJson("./data/changes.json")
-        ]);
-        state.mode = "fetch";
-        state.rules = rules;
-        state.bom = bom;
-        state.parts = parts;
-        state.suppliers = suppliers;
-        state.changes = changes;
-      } catch (err) {
-        state.mode = "fetch_failed";
-        arcbosSetText("#dataMode", "fetch failed");
-        arcbosSetText("#lastUpdated", "—");
-        arcbosSetText("#buildStamp", "Data load failed. See README for local server.");
-        arcbosRenderList("#topSuppliers", [{
-          title: "Data could not be loaded.",
-          meta: "If you opened via file://, run a local static server."
-        }]);
-        arcbosRenderList("#keyRisks", [{
-          title: "No data",
-          meta: "Fix data loading first."
-        }]);
-        arcbosRenderList("#recentChanges", [{
-          title: "No data",
-          meta: "Fix data loading first."
-        }]);
-        return;
-      }
-
-      // Header meta
-      const lastUpdated =
-        (state.rules && state.rules.meta && state.rules.meta.lastUpdated) ? state.rules.meta.lastUpdated : "—";
-      arcbosSetText("#lastUpdated", lastUpdated);
-      arcbosSetText("#dataMode", state.mode);
-      arcbosSetText("#buildStamp", "Build: static • Data: /data/*.json");
-
-      // KPIs: This week (simple heuristic: last 7 days vs rules.meta.lastUpdated date)
-      const weekWindowDays = 7;
-      const now = arcbosSafeDate(lastUpdated) || new Date();
-      const since = new Date(now.getTime() - weekWindowDays * 24 * 60 * 60 * 1000);
-
-      const changes = Array.isArray(state.changes?.changes) ? state.changes.changes : [];
-      const recent = changes
-        .map(c => ({ ...c, _d: arcbosSafeDate(c.date) }))
-        .filter(c => c._d && c._d >= since)
-        .sort((a, b) => b._d - a._d);
-
-      const newChanges = recent.length;
-      const ecoApproved = recent.filter(c => (c.type === "ECO") && (c.status === "Approved")).length;
-      const openEcr = changes.filter(c => (c.type === "ECR") && (c.status !== "Closed")).length;
-
-      arcbosSetText("#kpiNewChanges", String(newChanges));
-      arcbosSetText("#kpiEcoApproved", String(ecoApproved));
-      arcbosSetText("#kpiOpenEcr", String(openEcr));
-      arcbosSetText("#pillWeek", "Last 7 days");
-
-      // BOM health
-      const nodes = Array.isArray(state.bom?.nodes) ? state.bom.nodes : [];
-      const totalNodes = nodes.length;
-      const highCrit = nodes.filter(n => (n.criticality || "").toLowerCase() === "high").length;
-      const missingSup = nodes.filter(n => !Array.isArray(n.suppliers) || n.suppliers.length === 0).length;
-
-      arcbosSetText("#kpiBomNodes", String(totalNodes));
-      arcbosSetText("#kpiHighCrit", String(highCrit));
-      arcbosSetText("#kpiMissingSuppliers", String(missingSup));
-
-      const health = arcbosScoreBomHealth({ totalNodes, highCrit, missingSup });
-      arcbosSetText("#badgeBomHealth", health.label);
-      arcbosSetText("#bomHealthHint", health.hint);
-
-      // Supplier ranking
-      const supplierList = Array.isArray(state.suppliers?.suppliers) ? state.suppliers.suppliers : [];
-      const weights = state.rules?.supplierScoring?.weights || {};
-      const ranked = supplierList
-        .map(s => {
-          const score = arcbosWeightedSupplierScore(s.scores || {}, weights);
-          return { ...s, _score: score };
-        })
-        .sort((a, b) => b._score - a._score)
-        .slice(0, 5);
-
-      arcbosRenderList("#topSuppliers", ranked.map(s => ({
-        title: `${s.name} (${s.supplierId})`,
-        meta: `Score: ${arcbosFmt1(s._score)} • Region: ${s.region || "—"} • Tags: ${(s.riskTags || []).join(", ") || "—"}`
-      })));
-
-      // Key risks (simple aggregation)
-      const risks = [];
-      for (const s of supplierList) {
-        for (const t of (s.riskTags || [])) {
-          risks.push({ kind: "Supplier", ref: s.supplierId, tag: t });
-        }
-      }
-      const parts = Array.isArray(state.parts?.parts) ? state.parts.parts : [];
-      for (const p of parts) {
-        for (const t of (p.riskTags || [])) {
-          risks.push({ kind: "Part", ref: p.sku, tag: t });
-        }
-      }
-      const grouped = arcbosCountBy(risks, r => r.tag || "Unspecified");
-      const topRisks = Object.entries(grouped)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 6)
-        .map(([tag, count]) => ({ tag, count }));
-
-      arcbosRenderList("#keyRisks", topRisks.map(r => ({
-        title: r.tag,
-        meta: `Occurrences: ${r.count}`
-      })));
-
-      // Recent changes list
-      arcbosRenderList("#recentChanges", recent.slice(0, 6).map(c => ({
-        title: `${c.changeId} • ${c.type} • ${c.title}`,
-        meta: `Status: ${c.status} • Date: ${c.date} • Approver: ${c.approver || "—"}`
-      })));
-    })();
-  </script>
+  <!-- Data loader (must define window.arcbosDataLoadAll) -->
+  <script src="./js/data.js"></script>
+  <!-- App bootstrap (loads JSON + updates header meta) -->
+  <script src="./js/app.js"></script>
 </body>
 </html>
